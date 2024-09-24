@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-// Chat Обработчик главной страницы.
-
 type Chat struct {
 	ID             int
 	Img            string
@@ -23,10 +21,17 @@ type Chat struct {
 }
 
 type Recipient struct {
-	ID   int
-	Img  string
-	Name string
-	Info string
+	ID            int
+	ApplicationID int
+	ChatID        int
+	Img           string
+	Name          string
+	Info          string
+}
+
+type Request struct {
+	ID        int
+	Recipient []Recipient
 }
 
 var chats []Chat = []Chat{
@@ -34,7 +39,7 @@ var chats []Chat = []Chat{
 		ID:   1,
 		Img:  "http://127.0.0.1:9000/test/1.png",
 		Name: "Леонардо Ди Каприо",
-		Info: "Типа актер с оскаром",
+		Info: "актёр, продюсер и активист, известный своими выдающимися ролями и вкладом в защиту окружающей среды.",
 		Messages: []string{
 			"Привет, Лео! Как у тебя дела?",
 			"Только что пересматривал 'Выжившего'. Впечатляюще!",
@@ -52,7 +57,7 @@ var chats []Chat = []Chat{
 		ID:   2,
 		Img:  "http://127.0.0.1:9000/test/2.png",
 		Name: "Хью Джекман",
-		Info: "Не беспокоить",
+		Info: "Известен своей ролью Росомахи, также проявил себя в театре и кино",
 		Messages: []string{
 			"Привет, Хью! Как поживаешь?",
 			"Смотрел 'Величайший шоумен' — просто невероятно!",
@@ -74,7 +79,7 @@ var chats []Chat = []Chat{
 		ID:   3,
 		Img:  "http://127.0.0.1:9000/test/3.png",
 		Name: "Магнус Карлсен",
-		Info: "1 на 1 любого в шахматы разнесу",
+		Info: "Норвежский гроссмейстер, ставший чемпионом мира по шахматам",
 		Messages: []string{
 			"Привет, Магнус! Как твои шахматные тренировки?",
 			"Недавно смотрел твои партии — впечатляющая игра!",
@@ -107,18 +112,25 @@ var chats []Chat = []Chat{
 	},
 }
 
-var request []Recipient = []Recipient{
-	{
-		ID:   1,
-		Img:  "http://127.0.0.1:9000/test/1.png",
-		Name: "Леонардо Ди Каприо",
-		Info: "Актёр, продюсер и активист, известный своими выдающимися ролями и вкладом в защиту окружающей среды.",
-	},
-	{
-		ID:   4,
-		Img:  "http://127.0.0.1:9000/test/4.png",
-		Name: "Антон Канев",
-		Info: "Гений, миллиардер, плейбой, филантроп и говорит (по мелочи) на китайском",
+var mockRequest Request = Request{
+	ID: 1,
+	Recipient: []Recipient{
+		{
+			ID:            1,
+			ApplicationID: 1,
+			ChatID:        1,
+			Img:           "http://127.0.0.1:9000/test/1.png",
+			Name:          "Леонардо Ди Каприо",
+			Info:          "Актёр, продюсер и активист, известный своими выдающимися ролями и вкладом в защиту окружающей среды.",
+		},
+		{
+			ID:            2,
+			ApplicationID: 1,
+			ChatID:        4,
+			Img:           "http://127.0.0.1:9000/test/4.png",
+			Name:          "Антон Канев",
+			Info:          "Гений, миллиардер, плейбой, филантроп и говорит (по мелочи) на китайском",
+		},
 	},
 }
 
@@ -129,7 +141,6 @@ func ChatsHandle(c *gin.Context) {
 	result := make([]Chat, 0)
 	if query != "" {
 		for _, m := range chats {
-			// Ищем вхождение строки поиска в никнеймах
 			if strings.Contains(strings.ToLower(m.Name), strings.ToLower(query)) {
 				result = append(result, m)
 			}
@@ -140,7 +151,7 @@ func ChatsHandle(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "chats.page.tmpl", gin.H{
 		"data":  result,
-		"req":   request,
+		"req":   mockRequest,
 		"query": query,
 	})
 }
@@ -163,5 +174,5 @@ func ChatHandle(c *gin.Context) {
 }
 
 func RequestHandle(c *gin.Context) {
-	c.HTML(http.StatusOK, "request.page.tmpl", request)
+	c.HTML(http.StatusOK, "request.page.tmpl", mockRequest)
 }

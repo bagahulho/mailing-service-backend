@@ -58,15 +58,10 @@ body {
 .content {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
     border-radius: 10px;
     background-color: #222222;
     overflow: hidden;
-}
-
-.contact-list {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
 }
 
 .contact-card {

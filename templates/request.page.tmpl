@@ -22,20 +22,18 @@
         <input type="text" name="message" placeholder="Введите сообщение...">
     </div>
     <div class="content">
-        <div class="contact-list">
-            {{ range . }}
-            <a href="/chats/{{ .ID }}" class="contact-card">
-                <div class="avatar">
-                    <img src={{ .Img }} alt="Avatar">
-                </div>
-                <div class="contact-info">
-                    <h3>{{ .Name }}</h3>
-                    <p>{{ .Info }}</p>
-                </div>
-                <div class="chat-count">0</div>
-            </a>
-            {{ end }}
-        </div>
+        {{ range .Recipient }}
+        <a href="/chats/{{ .ID }}" class="contact-card">
+            <div class="avatar">
+                <img src={{ .Img }} alt="Avatar">
+            </div>
+            <div class="contact-info">
+                <h3>{{ .Name }}</h3>
+                <p>{{ .Info }}</p>
+            </div>
+            <div class="chat-count">0</div>
+        </a>
+        {{ end }}
     </div>
 </div>
 </body>
