@@ -9,8 +9,6 @@
 *.dylib
 .DS_Store
 .idea
-.env
-builds
 # Test binary, built with `go test -c`
 *.test
 
