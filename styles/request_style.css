@@ -112,6 +112,17 @@ body {
     margin-left: 7px;
 }
 
+.delete-btn-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.delete-btn {
+    background-color: #141414;
+    border: none;
+    cursor: pointer;
+}
+
 .chat-count {
     width: 60px;
     height: 60px;
