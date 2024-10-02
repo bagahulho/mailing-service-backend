@@ -29,7 +29,7 @@ func (r *Repository) GetChatByID(id int) (*ds.Chat, error) {
 
 func (r *Repository) SearchChatsByName(name string) ([]ds.Chat, error) {
 	var chats []ds.Chat
-	err := r.db.Where("name ILIKE ?", "%"+name+"%").First(&chats).Error
+	err := r.db.Where("name ILIKE ?", "%"+name+"%").Find(&chats).Error
 	if err != nil {
 		return nil, err
 	}
