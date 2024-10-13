@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WK Chat</title>
-    <link rel="stylesheet" href="/styles/request_style.css">
+    <link rel="stylesheet" href="/styles/sending_style.css">
 </head>
 <body>
 <header class="site-header">
@@ -22,7 +22,7 @@
         <input type="text" name="message" placeholder="Введите сообщение...">
     </div>
     <div class="content">
-        {{ range .Recipient }}
+        {{ range . }}
         <a href="/chats/{{ .ID }}" class="contact-card">
             <div class="avatar">
                 <img src={{ .Img }} alt="Avatar">
@@ -31,7 +31,20 @@
                 <h3>{{ .Name }}</h3>
                 <p>{{ .Info }}</p>
             </div>
-            <div class="chat-count">0</div>
+            <div class="sound">
+                <input type="checkbox" id="sound-toggle" class="sound-checkbox" />
+                <label for="sound-toggle">
+                    <svg id="sound-on" class="sound-icon sound-on" width="40px" height="40px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8.86607 7.00638H8.12819C7.29866 7.00638 6.47502 7.15311 5.69169 7.44046C4.32455 7.94197 3.32964 9.1935 3.10172 10.6985L3.0942 10.7481C2.9686 11.5775 2.9686 12.4225 3.0942 13.2519L3.10172 13.3015C3.32964 14.8065 4.32455 16.058 5.69169 16.5595C6.47502 16.8469 7.29866 16.9936 8.12819 16.9936H8.86607C9.31092 16.9936 9.73726 17.1811 10.0499 17.5142L10.5914 18.091C12.1879 19.7918 14.938 18.9873 15.4719 16.6633C16.176 13.5986 16.176 10.4014 15.4719 7.33668C14.938 5.01271 12.1879 4.20823 10.5914 5.90899L10.0499 6.48581C9.73726 6.81891 9.31092 7.00638 8.86607 7.00638Z" stroke="#363853" stroke-width="1.5"/>
+                        <path d="M19 7C20.7934 7.99804 22 9.86346 22 12C22 14.1365 20.7934 16.002 19 17" stroke="#0095FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M18.5 10C19.0978 10.3992 19.5 11.1454 19.5 12C19.5 12.8546 19.0978 13.6008 18.5 14" stroke="#0095FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <svg id="sound-off" class="sound-icon sound-off" width="40px" height="40px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7.86607 7.00638H7.12819C6.29866 7.00638 5.47502 7.15311 4.69169 7.44046C3.32455 7.94197 2.32964 9.1935 2.10172 10.6985L2.0942 10.7481C1.9686 11.5775 1.9686 12.4225 2.0942 13.2519L2.10172 13.3015C2.32964 14.8065 3.32455 16.058 4.69169 16.5595C5.47502 16.8469 6.29866 16.9936 7.12819 16.9936H7.86607C8.31092 16.9936 8.73726 17.1811 9.04993 17.5142L9.59139 18.091C11.1879 19.7918 13.938 18.9873 14.4719 16.6633C15.176 13.5986 15.176 10.4014 14.4719 7.33668C13.938 5.01271 11.1879 4.20823 9.59138 5.90899L9.04993 6.48581C8.73726 6.81891 8.31092 7.00638 7.86607 7.00638Z" stroke="#363853" stroke-width="1.5"/>
+                        <path d="M22 10L18 14M22 14L18 10" stroke="#0095FF" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </label>
+            </div>
         </a>
         {{ end }}
     </div>

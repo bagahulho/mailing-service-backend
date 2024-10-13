@@ -14,7 +14,7 @@ func StartServer() {
 	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/chats", handlers.ChatsHandle)
-	r.GET("/sending", handlers.SendingHandle)
+	r.GET("/sending/:id", handlers.SendingHandle)
 	r.GET("/chats/:id", handlers.ChatHandle)
 
 	r.Static("/styles", "./styles")

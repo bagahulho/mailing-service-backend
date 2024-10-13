@@ -26,7 +26,6 @@ type Recipient struct {
 type Message struct {
 	ID        int
 	Text      string
-	Date      string
 	Recipient []Recipient
 }
 
@@ -72,7 +71,6 @@ var chats []Chat = []Chat{
 var mockMessage Message = Message{
 	ID:   1,
 	Text: "It`s first message",
-	Date: "19.06.2024",
 	Recipient: []Recipient{
 		{
 			ChatID: 1,
@@ -80,19 +78,19 @@ var mockMessage Message = Message{
 		},
 		{
 			ChatID: 4,
-			Sound:  0,
+			Sound:  1,
 		},
 	},
 }
 
 func ChatsHandle(c *gin.Context) {
-	// Получаем параметр query из GET-запроса
-	query := c.Query("query")
+	// Получаем параметр search из GET-запроса
+	search := c.Query("search")
 	// это реализация поиска!
 	result := make([]Chat, 0)
-	if query != "" {
+	if search != "" {
 		for _, m := range chats {
-			if strings.Contains(strings.ToLower(m.Name), strings.ToLower(query)) {
+			if strings.Contains(strings.ToLower(m.Name), strings.ToLower(search)) {
 				result = append(result, m)
 			}
 		}
@@ -102,8 +100,9 @@ func ChatsHandle(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "chats.page.tmpl", gin.H{
 		"data":        result,
-		"message-len": len(mockMessage.Recipient),
-		"query":       query,
+		"message_len": len(mockMessage.Recipient),
+		"search":      search,
+		"message_id":  mockMessage.ID,
 	})
 }
 
@@ -125,5 +124,13 @@ func ChatHandle(c *gin.Context) {
 }
 
 func SendingHandle(c *gin.Context) {
-	c.HTML(http.StatusOK, "sending.page.tmpl", mockMessage)
+	var result []Chat
+	for _, mesChat := range mockMessage.Recipient {
+		for _, chat := range chats {
+			if chat.ID == mesChat.ChatID {
+				result = append(result, chat)
+			}
+		}
+	}
+	c.HTML(http.StatusOK, "sending.page.tmpl", result)
 }
