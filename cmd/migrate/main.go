@@ -18,8 +18,8 @@ func main() {
 	// Migrate the schema
 	err = db.AutoMigrate(
 		&ds.Chat{},
-		&ds.List{},
-		&ds.ListsChat{},
+		&ds.Message{},
+		&ds.MessageChat{},
 		&ds.Users{},
 	)
 	if err != nil {

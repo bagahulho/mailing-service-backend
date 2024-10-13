@@ -1,4 +1,4 @@
-drop table lists_chats;
+drop table message_chats;
 drop table chats;
-drop table lists;
+drop table messages;
 drop table users;

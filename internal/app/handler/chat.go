@@ -12,11 +12,11 @@ func (h *Handler) GetAllChats(ctx *gin.Context) {
 	var chats []ds.Chat
 	var err error
 
-	query := ctx.Query("query")
-	if query == "" {
+	search := ctx.Query("search")
+	if search == "" {
 		chats, err = h.Repository.GetAllChats()
 	} else {
-		chats, err = h.Repository.SearchChatsByName(query)
+		chats, err = h.Repository.SearchChatsByName(search)
 	}
 
 	if err != nil {
@@ -29,7 +29,8 @@ func (h *Handler) GetAllChats(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "chats.page.tmpl", gin.H{
 		"data":       chats,
 		"cart_count": h.Repository.GetCartCount(),
-		"query":      query,
+		"search":     search,
+		"draft_id":   h.Repository.GetDraftID(),
 	})
 }
 
@@ -52,14 +53,27 @@ func (h *Handler) GetChatById(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "chat.page.tmpl", chat)
 }
 
-func (h *Handler) GetRequest(ctx *gin.Context) {
-	requestChats, err := h.Repository.GetRequest()
+func (h *Handler) GetMessage(ctx *gin.Context) {
+	strId := ctx.Param("id")
+	id, err := strconv.Atoi(strId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
+		return
 	}
-	ctx.HTML(http.StatusOK, "request.page.tmpl", requestChats)
+
+	Message, Chats, err := h.Repository.GetMessage(uint(id))
+	if err != nil {
+		ctx.Redirect(http.StatusFound, "/chats")
+		return
+	}
+
+	// Рендерим страницу, если нет ошибок
+	ctx.HTML(http.StatusOK, "message.page.tmpl", gin.H{
+		"message_text": Message.Text.String,
+		"chats":        Chats,
+	})
 }
 
 func (h *Handler) AddChatToList(ctx *gin.Context) {
