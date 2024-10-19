@@ -3,6 +3,7 @@ package handler
 import (
 	"RIP/internal/app/ds"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,6 +24,7 @@ func (h *Handler) GetAllChats(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
+		logrus.Error(err)
 		return
 	}
 
@@ -41,6 +43,8 @@ func (h *Handler) GetChatById(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
+		logrus.Error(err)
+		return
 	}
 
 	chat, err := h.Repository.GetChatByID(id)
@@ -48,22 +52,25 @@ func (h *Handler) GetChatById(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
+		logrus.Error(err)
+		return
 	}
 
 	ctx.HTML(http.StatusOK, "chat.page.tmpl", chat)
 }
 
-func (h *Handler) GetMessage(ctx *gin.Context) {
+func (h *Handler) GetMessageByID(ctx *gin.Context) {
 	strId := ctx.Param("id")
 	id, err := strconv.Atoi(strId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
+		logrus.Error(err)
 		return
 	}
 
-	Message, Chats, err := h.Repository.GetMessage(uint(id))
+	Message, Chats, err := h.Repository.GetMessageByID(uint(id))
 	if err != nil {
 		ctx.Redirect(http.StatusFound, "/chats")
 		return

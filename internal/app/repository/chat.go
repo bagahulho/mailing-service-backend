@@ -48,7 +48,7 @@ func (r *Repository) GetDraftID() uint {
 	return messageID
 }
 
-func (r *Repository) GetMessage(messageID uint) (ds.Message, []ds.Chat, error) {
+func (r *Repository) GetMessageByID(messageID uint) (ds.Message, []ds.Chat, error) {
 	var message ds.Message
 	var chatIDs []uint
 	var chats []ds.Chat
