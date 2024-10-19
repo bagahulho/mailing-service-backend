@@ -20,7 +20,7 @@ func main() {
 		&ds.Chat{},
 		&ds.Message{},
 		&ds.MessageChat{},
-		&ds.Users{},
+		&ds.User{},
 	)
 	if err != nil {
 		panic("cant migrate db")
