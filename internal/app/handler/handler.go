@@ -60,3 +60,10 @@ func (h *Handler) errorHandler(ctx *gin.Context, errorStatusCode int, descriptio
 		"description": description,
 	})
 }
+
+func getCurrentUserID(c *gin.Context) uint {
+	return 1 // временно возвращаем фиксированный ID
+}
+func getCurrentModeratorID(c *gin.Context) uint {
+	return 2 // временно возвращаем фиксированный ID
+}

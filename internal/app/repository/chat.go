@@ -1,145 +1,160 @@
 package repository
 
-//
-//import (
-//	"RIP/internal/app/ds"
-//	"errors"
-//	"fmt"
-//	"github.com/sirupsen/logrus"
-//	"gorm.io/gorm"
-//	"strings"
-//	"time"
-//)
-//
-//func (r *Repository) GetAllChats() ([]ds.Chat, error) {
-//	var chats []ds.Chat
-//	//err := r.db.Find(&chats).Error
-//	err := r.db.Where("is_delete = false").Find(&chats).Error
-//	if err != nil {
-//		return nil, err
-//	}
-//	return chats, nil
-//}
-//
-//func (r *Repository) GetChatByID(id int) (*ds.Chat, error) {
-//	chat := &ds.Chat{}
-//	err := r.db.Where("id = ?", id).First(chat).Error
-//	if err != nil {
-//		return nil, err
-//	}
-//	return chat, nil
-//}
-//
-//func (r *Repository) SearchChatsByName(name string) ([]ds.Chat, error) {
-//	var chats []ds.Chat
-//	err := r.db.Where("name ILIKE ?", "%"+name+"%").Find(&chats).Error
-//	if err != nil {
-//		return nil, err
-//	}
-//	return chats, nil
-//}
-//
-//func (r *Repository) GetDraftID() uint {
-//	var messageID uint
-//	err := r.db.Model(&ds.Message{}).Where("status = ?", "черновик").Select("id").First(&messageID).Error
-//	if err != nil {
-//		return 0
-//	}
-//
-//	return messageID
-//}
-//
-//func (r *Repository) GetMessage(messageID uint) (ds.Message, []ds.Chat, error) {
-//	var message ds.Message
-//	var chatIDs []uint
-//	var chats []ds.Chat
-//
-//	err := r.db.First(&message, messageID).Error
-//	if err != nil {
-//		return message, nil, fmt.Errorf("error finding message with id %d: %w", messageID, err)
-//	}
-//
-//	if strings.TrimSpace(strings.ToLower(message.Status)) == "удалён" {
-//		return message, nil, fmt.Errorf("данное сообщение удалено")
-//	}
-//
-//	err = r.db.Model(&ds.MessageChat{}).Where("message_id = ?", messageID).Pluck("chat_id", &chatIDs).Error
-//	if err != nil {
-//		return message, nil, fmt.Errorf("error finding chat_ids for list_id %d: %w", messageID, err)
-//	}
-//
-//	err = r.db.Model(&ds.Chat{}).Where("id IN ?", chatIDs).Find(&chats).Error
-//	if err != nil {
-//		return message, nil, fmt.Errorf("error finding chats for chat_ids %v: %w", chatIDs, err)
-//	}
-//
-//	return message, chats, nil
-//}
-//
-//func (r *Repository) AddChatToList(chatID uint) error {
-//	var message ds.Message
-//
-//	err := r.db.Where("status = ?", "черновик").First(&message).Error
-//
-//	if errors.Is(err, gorm.ErrRecordNotFound) {
-//		newList := ds.Message{
-//			Status:      "черновик",
-//			DateCreate:  time.Now(),
-//			DateUpdate:  time.Now(),
-//			CreatorID:   1,
-//			ModeratorID: 2,
-//		}
-//		if err := r.db.Create(&newList).Error; err != nil {
-//			return err
-//		}
-//		message = newList
-//	} else if err != nil {
-//		return err
-//	}
-//
-//	messageChat := ds.MessageChat{
-//		MessageID: message.ID,
-//		ChatID:    chatID,
-//		Sound:     true,
-//	}
-//
-//	if err := r.db.Create(&messageChat).Error; err != nil {
-//		return err
-//	}
-//
-//	// Update the date of the message
-//	message.DateUpdate = time.Now()
-//	if err := r.db.Save(&message).Error; err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-//
-//func (r *Repository) DeleteList() error {
-//	query := "UPDATE messages SET status = 'удалён', date_update = NOW() WHERE status = 'черновик'"
-//
-//	err := r.db.Exec(query)
-//	if err != nil {
-//		return err.Error
-//	}
-//
-//	return nil
-//}
-//
-//func (r *Repository) GetCartCount() int64 {
-//	var messageID uint
-//	var count int64
-//
-//	err := r.db.Model(&ds.Message{}).Where("status = ?", "черновик").Select("id").First(&messageID).Error
-//	if err != nil {
-//		return 0
-//	}
-//
-//	err = r.db.Model(&ds.MessageChat{}).Where("message_id = ?", messageID).Count(&count).Error
-//	if err != nil {
-//		logrus.Println("Error counting records in lists_chats:", err)
-//	}
-//
-//	return count
-//}
+import (
+	"RIP/internal/app/ds"
+	"context"
+	"errors"
+	"fmt"
+	"github.com/minio/minio-go/v7"
+	"gorm.io/gorm"
+	"io"
+	"time"
+)
+
+func (r *Repository) GetChats(userID uint, name string) ([]Chat, uint, int64, error) {
+	var chats []Chat
+
+	query := r.db.Model(&Chat{}).Where("is_delete = ?", false)
+
+	if name != "" {
+		query = query.Where("name ILIKE ?", "%"+name+"%")
+	}
+
+	err := query.Find(&chats).Error
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("ошибка при получении списка чатов: %w", err)
+	}
+
+	var draft ds.Message
+	err = r.db.Where("creator_id = ? AND status = ?", userID, "черновик").First(&draft).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, 0, 0, fmt.Errorf("ошибка получения черновика: %w", err)
+	}
+
+	var count int64
+	if draft.ID != 0 {
+		err = r.db.Model(&ds.MessageChat{}).Where("message_id = ?", draft.ID).Count(&count).Error
+		if err != nil {
+			return nil, 0, 0, fmt.Errorf("ошибка подсчета чатов в черновике: %w", err)
+		}
+	}
+
+	return chats, draft.ID, count, nil
+}
+
+func (r *Repository) GetChatByID(chatID uint) (Chat, error) {
+	var chat Chat
+
+	// Поиск чата в базе данных
+	err := r.db.Where("is_delete = ?", false).First(&chat, chatID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return chat, fmt.Errorf("чат с id %d не найден", chatID)
+		}
+		return chat, fmt.Errorf("ошибка при получении чата: %w", err)
+	}
+
+	return chat, nil
+}
+
+func (r *Repository) CreateChat(chat ds.Chat) (int, error) {
+	// Сохранение нового чата в базе данных
+	err := r.db.Create(&chat).Error
+	if err != nil {
+		return 0, fmt.Errorf("ошибка при создании чата: %w", err)
+	}
+
+	return chat.ID, nil
+}
+
+func (r *Repository) UpdateChat(chat ds.Chat) error {
+	err := r.db.Save(&chat).Error
+	if err != nil {
+		return fmt.Errorf("ошибка при обновлении чата с id %d: %w", chat.ID, err)
+	}
+	return nil
+}
+
+func (r *Repository) DeleteChat(chatID uint, imageName string) error {
+	// Удаление изображения из Minio
+	err := r.MinioClient.RemoveObject(context.Background(), "test", imageName, minio.RemoveObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("ошибка при удалении изображения")
+	}
+
+	err = r.db.Delete(&ds.Chat{}, chatID).Error
+	if err != nil {
+		return fmt.Errorf("ошибка при удалении чата с id %d: %w", chatID, err)
+	}
+
+	return nil
+}
+
+func (r *Repository) AddChatToMessage(chatID uint) error {
+	var message ds.Message
+
+	err := r.db.Where("status = ?", "черновик").First(&message).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		newList := ds.Message{
+			Status:     "черновик",
+			DateCreate: time.Now(),
+			CreatorID:  1,
+		}
+		if err := r.db.Create(&newList).Error; err != nil {
+			return fmt.Errorf("ошибка создания черновика")
+		}
+		message = newList
+	} else if err != nil {
+		return fmt.Errorf("ошибка при поиске черновика")
+	}
+
+	// Сохраняем изменения
+	err = r.db.Save(&message).Error
+	if err != nil {
+		return fmt.Errorf("ошибка обновления даты изменения")
+	}
+
+	messageChat := ds.MessageChat{
+		MessageID: message.ID,
+		ChatID:    chatID,
+		Sound:     true,
+	}
+
+	if err := r.db.Create(&messageChat).Error; err != nil {
+		return fmt.Errorf("ошибка при добавлении чата в сообщение")
+	}
+
+	return nil
+}
+
+func (r *Repository) ReplaceChatImage(chatID uint, imageName string, imageFile io.Reader, imageSize int64) error {
+	var chat Chat
+
+	// Найти чат по ID
+	if err := r.db.First(&chat, chatID).Error; err != nil {
+		return fmt.Errorf("чат с id %d не найден: %w", chatID, err)
+	}
+
+	// Если старое изображение существует, удалить его из Minio
+	if chat.Img != "" {
+		err := r.MinioClient.RemoveObject(context.Background(), "test", imageName, minio.RemoveObjectOptions{})
+		if err != nil {
+			return fmt.Errorf("ошибка удаления старого изображения %s: %v", chat.Img, err)
+		}
+	}
+
+	// Загрузить новое изображение в Minio
+	_, errMinio := r.MinioClient.PutObject(context.Background(), "test", imageName, imageFile, imageSize, minio.PutObjectOptions{
+		ContentType: "image/png",
+	})
+
+	chat.Img = fmt.Sprintf("http://127.0.0.1:9000/test/%d.png", chatID)
+	errDB := r.db.Save(&chat).Error
+
+	if errMinio != nil || errDB != nil {
+		return fmt.Errorf("ошибка загрузки нового изображения для чата %d", chatID)
+	}
+
+	return nil
+}
