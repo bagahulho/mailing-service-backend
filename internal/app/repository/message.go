@@ -4,16 +4,27 @@ import (
 	"RIP/internal/app/ds"
 	"database/sql"
 	"errors"
+	"fmt"
+	"gorm.io/gorm"
+	"math/rand"
 	"time"
 )
 
-func (r *Repository) GetMessagesFiltered(status string, hasStartDate, hasEndDate bool, startDate, endDate time.Time) ([]MessageWithUsers, error) {
-	var messages []MessageWithUsers
-
-	query := r.db.Table("messages").
-		Select("messages.id, messages.status, messages.text, messages.date_create, messages.date_update, messages.date_finish, u1.login as creator").
-		Joins("JOIN users u1 ON messages.creator_id = u1.id").
-		Where("messages.status != ? AND messages.status != ?", "удалён", "черновик")
+func (r *Repository) GetMessagesFiltered(status string, hasStartDate, hasEndDate bool, startDate, endDate time.Time, userID uint, isModerator bool) ([]ds.MessageWithUsers, error) {
+	var messages []ds.MessageWithUsers
+	var query *gorm.DB
+	if !isModerator {
+		query = r.db.Table("messages").
+			Select("messages.id, messages.status, messages.text, messages.date_create, messages.date_update, messages.date_finish, u1.login as creator").
+			Joins("JOIN users u1 ON messages.creator_id = u1.id").
+			Where("messages.status != ? AND messages.status != ?", "удалён", "черновик").
+			Where("messages.creator_id = ?", userID)
+	} else {
+		query = r.db.Table("messages").
+			Select("messages.id, messages.status, messages.text, messages.date_create, messages.date_update, messages.date_finish, u1.login as creator").
+			Joins("JOIN users u1 ON messages.creator_id = u1.id").
+			Where("messages.status != ? AND messages.status != ?", "удалён", "черновик")
+	}
 
 	// Добавляем фильтрацию по статусу, если он указан
 	if status != "" {
@@ -35,28 +46,55 @@ func (r *Repository) GetMessagesFiltered(status string, hasStartDate, hasEndDate
 	return messages, nil
 }
 
-func (r *Repository) GetMessage(messageID string) (ds.Message, []Chat, error) {
+//func (r *Repository) GetMessage(messageID string, userID uint) (ds.Message, []ds.ChatResponse, error) {
+//	var message ds.Message
+//	var chats []ds.ChatResponse
+//
+//	// Получаем сообщение
+//	if err := r.db.Preload("Creator").Preload("Moderator").First(&message, messageID).Error; err != nil {
+//		return ds.Message{}, nil, err
+//	}
+//	if message.CreatorID != userID || message.Status == "удалён" {
+//		return ds.Message{}, nil, fmt.Errorf("данная заявка вам не доступна")
+//	}
+//
+//	// Получаем чаты, связанные с сообщением
+//	if err := r.db.Model(&ds.MessageChat{}).
+//		Select("chats.*").
+//		Joins("JOIN chats ON message_chats.chat_id = chats.id").
+//		Where("message_chats.message_id = ?", message.ID).
+//		Find(&chats).Error; err != nil {
+//		return ds.Message{}, nil, err
+//	}
+//
+//	return message, chats, nil
+//}
+
+func (r *Repository) GetMessage(messageID string, userID uint) (ds.Message, []ds.ChatResponseWithFlags, error) {
 	var message ds.Message
-	var chats []Chat
+	var chats []ds.ChatResponseWithFlags
 
 	// Получаем сообщение
 	if err := r.db.Preload("Creator").Preload("Moderator").First(&message, messageID).Error; err != nil {
 		return ds.Message{}, nil, err
 	}
+	if message.CreatorID != userID || message.Status == "удалён" {
+		return ds.Message{}, nil, fmt.Errorf("данная заявка вам не доступна")
+	}
 
-	// Получаем чаты, связанные с сообщением
-	if err := r.db.Model(&ds.MessageChat{}).
-		Select("chats.*").
+	// Получаем чаты вместе с полями Sound и IsRead из таблицы MessageChat
+	if err := r.db.Table("message_chats").
+		Select("chats.id, chats.img, chats.name, chats.info, chats.nickname, chats.friends, chats.subscribers, message_chats.sound, message_chats.is_read").
 		Joins("JOIN chats ON message_chats.chat_id = chats.id").
 		Where("message_chats.message_id = ?", message.ID).
-		Find(&chats).Error; err != nil {
+		Scan(&chats).Error; err != nil {
 		return ds.Message{}, nil, err
 	}
 
 	return message, chats, nil
 }
 
-func (r *Repository) UpdateMessageText(messageID uint, newText string) error {
+func (r *Repository) UpdateMessageText(messageID uint, newText string, userID uint) error {
 	var message ds.Message
 
 	// Находим сообщение по ID
@@ -65,7 +103,12 @@ func (r *Repository) UpdateMessageText(messageID uint, newText string) error {
 	}
 
 	// Обновляем текст сообщения
-	//message.Text = sql.NullString{String: newText, Valid: true}
+	if message.CreatorID != userID {
+		return fmt.Errorf("у вас нет доступа к данному сообщению")
+	}
+	if message.Status != "черновик" {
+		return fmt.Errorf("невозможно изменить текст данного сообщения")
+	}
 	message.Text = newText
 	message.DateUpdate = sql.NullTime{Time: time.Now(), Valid: true} // Обновляем дату изменения
 
@@ -110,7 +153,7 @@ func (r *Repository) MessageForm(messageID uint, creatorID uint) error {
 
 func (r *Repository) MessageFinish(messageID uint, moderatorID uint) error {
 	var message ds.Message
-
+	var messageChats []ds.MessageChat
 	// Находим сообщение по ID
 	if err := r.db.First(&message, messageID).Error; err != nil {
 		return err // Возвращаем ошибку, если сообщение не найдено
@@ -129,9 +172,18 @@ func (r *Repository) MessageFinish(messageID uint, moderatorID uint) error {
 		return errors.New("это сообщение уже отклонено")
 	}
 
+	if err := r.db.Where("message_id = ?", messageID).Find(&messageChats).Error; err != nil {
+		return err
+	}
+	for _, chat := range messageChats {
+		chat.IsRead = rand.Intn(2) == 0 // рандомное значение true or false
+		if err := r.db.Save(&chat).Error; err != nil {
+			return err
+		}
+	}
+
 	message.Status = "завершён"
 	message.DateFinish = sql.NullTime{Time: time.Now(), Valid: true}
-
 	return r.db.Save(&message).Error
 }
 

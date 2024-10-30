@@ -1,6 +1,7 @@
 package main
 
 import (
+	"RIP/docs"
 	"RIP/internal/app/config"
 	"RIP/internal/app/dsn"
 	"RIP/internal/app/handler"
@@ -15,7 +16,15 @@ import (
 	"log"
 )
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
+	docs.SwaggerInfo.Title = "Mailing app"
+	docs.SwaggerInfo.Description = "my api"
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.BasePath = "/"
 	router := gin.Default()
 	conf, err := config.NewConfig()
 	if err != nil {

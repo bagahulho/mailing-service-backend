@@ -1,0 +1,430 @@
+definitions:
+  ds.ChatRequest:
+    properties:
+      friends:
+        type: integer
+      info:
+        type: string
+      name:
+        type: string
+      nickname:
+        type: string
+      subscribers:
+        type: integer
+    type: object
+  ds.ChatResponse:
+    properties:
+      friends:
+        type: integer
+      id:
+        type: integer
+      img:
+        type: string
+      info:
+        type: string
+      name:
+        type: string
+      nickname:
+        type: string
+      subscribers:
+        type: integer
+    type: object
+  ds.ErrorResp:
+    properties:
+      description:
+        type: string
+      status:
+        type: integer
+    type: object
+  ds.GetChatsResponse:
+    properties:
+      chats:
+        items:
+          $ref: '#/definitions/ds.ChatResponse'
+        type: array
+      draft_ID:
+        type: integer
+      draft_count:
+        type: integer
+    type: object
+  ds.UpdateMessageTextInput:
+    properties:
+      text:
+        description: Обязательное поле текста
+        type: string
+    required:
+    - text
+    type: object
+  ds.UserRespReq:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /chat/{id}/in-message:
+    post:
+      description: Добавляет чат к конкретному сообщению
+      parameters:
+      - description: ID чата
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses: {}
+      security:
+      - BearerAuth: []
+      tags:
+      - Chats
+  /chats:
+    get:
+      description: Возвращает список чатов для конкретного пользователя с указанием
+        черновиков
+      parameters:
+      - description: Фильтр по имени чата
+        in: query
+        name: name
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.GetChatsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+      tags:
+      - Chats
+  /chats/{id}:
+    delete:
+      description: Удаляет чат по его ID и удаляет изображение из Minio
+      parameters:
+      - description: ID чата
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses: {}
+      security:
+      - BearerAuth: []
+      tags:
+      - Chats
+    get:
+      description: Возвращает информацию о чате по его ID
+      parameters:
+      - description: ID чата
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses: {}
+      tags:
+      - Chats
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные существующего чата
+      parameters:
+      - description: ID чата
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновленные данные чата
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/ds.ChatRequest'
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      tags:
+      - Chats
+  /chats/{id}/new-image:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает и заменяет изображение чата
+      parameters:
+      - description: ID чата
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новое изображение для чата
+        in: formData
+        name: image
+        required: true
+        type: file
+      responses: {}
+      security:
+      - BearerAuth: []
+      tags:
+      - Chats
+  /chats/create:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый чат с указанными данными
+      parameters:
+      - description: Информация о чате
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/ds.ChatRequest'
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      tags:
+      - Chats
+  /message-chats/delete/{message_id}/{chat_id}:
+    delete:
+      description: Удаляет чат с указанным ID из сообщения с указанным ID
+      parameters:
+      - description: ID сообщения
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      - description: ID чата
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Удаление чата из сообщения
+      tags:
+      - Message-Chats
+  /message-chats/switch/{message_id}/{chat_id}:
+    put:
+      description: Переключает значение поля "со звуком" у чата с указанным ID в сообщении
+        с указанным ID
+      parameters:
+      - description: ID сообщения
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      - description: ID чата
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Переключение поля "со звуком" у чата в сообщении
+      tags:
+      - Message-Chats
+  /messages:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список сообщений, отфильтрованных по статусу и диапазону
+        дат
+      parameters:
+      - description: Статус сообщения
+        in: query
+        name: status
+        type: string
+      - description: Начальная дата в формате YYYY-MM-DD
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата в формате YYYY-MM-DD
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Получить отфильтрованные сообщения
+      tags:
+      - Messages
+  /messages/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает полные данные о сообщении, включая чаты
+      parameters:
+      - description: ID сообщения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Получить сообщение по ID
+      tags:
+      - Messages
+  /messages/{id}/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Устанавливает статус сообщения на "удалён"
+      parameters:
+      - description: ID сообщения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Удалить сообщение
+      tags:
+      - Messages
+  /messages/{id}/finish:
+    put:
+      consumes:
+      - application/json
+      description: Устанавливает статус сообщения на "завершён"
+      parameters:
+      - description: ID сообщения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Завершить сообщение
+      tags:
+      - Messages
+  /messages/{id}/form:
+    put:
+      consumes:
+      - application/json
+      description: Устанавливает статус сообщения на "сформирован"
+      parameters:
+      - description: ID сообщения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Сформировать сообщение
+      tags:
+      - Messages
+  /messages/{id}/reject:
+    put:
+      consumes:
+      - application/json
+      description: Устанавливает статус сообщения на "отклонён"
+      parameters:
+      - description: ID сообщения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Отклонить сообщение
+      tags:
+      - Messages
+  /messages/{id}/text:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет текст сообщения по ID
+      parameters:
+      - description: ID сообщения
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новый текст сообщения
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/ds.UpdateMessageTextInput'
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Обновить текст сообщения
+      tags:
+      - Messages
+  /user/login:
+    post:
+      description: Аутентификация пользователя и создание JWT токена
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/ds.UserRespReq'
+      produces:
+      - application/json
+      responses: {}
+      summary: Вход пользователя
+      tags:
+      - Auth
+  /user/logout:
+    post:
+      description: Удаляет текущую сессию пользователя и завершает сеанс
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Выход из системы
+      tags:
+      - Auth
+  /user/reg:
+    post:
+      description: Создает нового пользователя с указанными логином и паролем
+      parameters:
+      - description: Данные для регистрации пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/ds.UserRespReq'
+      produces:
+      - application/json
+      responses: {}
+      summary: Регистрация пользователя
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

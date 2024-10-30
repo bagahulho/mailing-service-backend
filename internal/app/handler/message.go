@@ -1,18 +1,31 @@
 package handler
 
 import (
-	"RIP/internal/app/repository"
+	"RIP/internal/app/ds"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"time"
 )
 
+// GetMessagesFiltered
+// @Summary Получить отфильтрованные сообщения
+// @Description Возвращает список сообщений, отфильтрованных по статусу и диапазону дат
+// @Tags Messages
+// @Accept json
+// @Produce json
+// @Param status query string false "Статус сообщения"
+// @Param start_date query string false "Начальная дата в формате YYYY-MM-DD"
+// @Param end_date query string false "Конечная дата в формате YYYY-MM-DD"
+// @Security BearerAuth
+// @Router /messages [get]
 func (h *Handler) GetMessagesFiltered(ctx *gin.Context) {
 	// Получаем параметры фильтрации из запроса
 	status := ctx.Query("status")
 	startDateStr := ctx.Query("start_date")
 	endDateStr := ctx.Query("end_date")
+	userID := ctx.MustGet("userID").(uint)
+	isModerator := ctx.MustGet("isModerator").(bool)
 
 	// Парсим даты
 	startDate, err := time.Parse("2006-01-02", startDateStr)
@@ -28,7 +41,7 @@ func (h *Handler) GetMessagesFiltered(ctx *gin.Context) {
 	}
 
 	// Получаем сообщения из репозитория
-	messages, err := h.Repository.GetMessagesFiltered(status, startDateStr != "", endDateStr != "", startDate, endDate)
+	messages, err := h.repository.GetMessagesFiltered(status, startDateStr != "", endDateStr != "", startDate, endDate, userID, isModerator)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err.Error())
 		return
@@ -38,21 +51,29 @@ func (h *Handler) GetMessagesFiltered(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, messages)
 }
 
+// GetMessage
+// @Summary Получить сообщение по ID
+// @Description Возвращает полные данные о сообщении, включая чаты
+// @Tags Messages
+// @Accept json
+// @Produce json
+// @Param id path int true "ID сообщения"
+// @Security BearerAuth
+// @Router /messages/{id} [get]
 func (h *Handler) GetMessage(ctx *gin.Context) {
 	messageID := ctx.Param("id") // Получаем ID сообщения из URL
-
+	userID := ctx.MustGet("userID").(uint)
 	// Получаем сообщение из репозитория
-	message, chats, err := h.Repository.GetMessage(messageID)
+	message, chats, err := h.repository.GetMessage(messageID, userID)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// Формируем результат
-	messageDetail := repository.MessageDetail{
-		ID:     message.ID,
-		Status: message.Status,
-		//Text:       message.Text.String,
+	messageDetail := ds.MessageDetail{
+		ID:         message.ID,
+		Status:     message.Status,
 		Text:       message.Text,
 		DateCreate: message.DateCreate,
 		DateUpdate: message.DateUpdate.Time,
@@ -66,6 +87,16 @@ func (h *Handler) GetMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, messageDetail)
 }
 
+// UpdateMessageText
+// @Summary Обновить текст сообщения
+// @Description Обновляет текст сообщения по ID
+// @Tags Messages
+// @Accept json
+// @Produce json
+// @Param id path int true "ID сообщения"
+// @Param message body ds.UpdateMessageTextInput true "Новый текст сообщения"
+// @Security BearerAuth
+// @Router /messages/{id}/text [put]
 func (h *Handler) UpdateMessageText(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -83,8 +114,9 @@ func (h *Handler) UpdateMessageText(ctx *gin.Context) {
 		return
 	}
 
+	userID := ctx.MustGet("userID").(uint)
 	// Обновляем текст сообщения через репозиторий
-	if err := h.Repository.UpdateMessageText(uint(messageID), input.Text); err != nil {
+	if err := h.repository.UpdateMessageText(uint(messageID), input.Text, userID); err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -93,6 +125,15 @@ func (h *Handler) UpdateMessageText(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Text updated successfully"})
 }
 
+// MessageForm
+// @Summary Сформировать сообщение
+// @Description Устанавливает статус сообщения на "сформирован"
+// @Tags Messages
+// @Accept json
+// @Produce json
+// @Param id path int true "ID сообщения"
+// @Security BearerAuth
+// @Router /messages/{id}/form [put]
 func (h *Handler) MessageForm(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -100,9 +141,9 @@ func (h *Handler) MessageForm(ctx *gin.Context) {
 		return
 	}
 
-	creatorID := getCurrentUserID(ctx) // Получаем ID текущего пользователя
+	creatorID := ctx.MustGet("userID").(uint)
 
-	if err := h.Repository.MessageForm(uint(messageID), creatorID); err != nil {
+	if err := h.repository.MessageForm(uint(messageID), creatorID); err != nil {
 		if err.Error() == "только создатель заявки может ее изменить" {
 			h.errorHandler(ctx, http.StatusForbidden, err.Error())
 		} else if err.Error() == "статус уже установлен на 'сформирован'" {
@@ -124,6 +165,15 @@ func (h *Handler) MessageForm(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Статус обновлен на 'сформирован' успешно"})
 }
 
+// MessageFinish
+// @Summary Завершить сообщение
+// @Description Устанавливает статус сообщения на "завершён"
+// @Tags Messages
+// @Accept json
+// @Produce json
+// @Param id path int true "ID сообщения"
+// @Security BearerAuth
+// @Router /messages/{id}/finish [put]
 func (h *Handler) MessageFinish(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -131,9 +181,9 @@ func (h *Handler) MessageFinish(ctx *gin.Context) {
 		return
 	}
 
-	moderatorID := getCurrentModeratorID(ctx) // Получаем ID текущего пользователя
+	moderatorID := ctx.MustGet("userID").(uint)
 
-	if err := h.Repository.MessageFinish(uint(messageID), moderatorID); err != nil {
+	if err := h.repository.MessageFinish(uint(messageID), moderatorID); err != nil {
 		if err.Error() == "статус уже установлен на 'завершён'" {
 			h.errorHandler(ctx, http.StatusConflict, err.Error())
 		} else if err.Error() == "сообщение не сформировано, вы не можете его завершить" {
@@ -151,6 +201,15 @@ func (h *Handler) MessageFinish(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Статус обновлен на 'завершён' успешно"})
 }
 
+// MessageReject
+// @Summary Отклонить сообщение
+// @Description Устанавливает статус сообщения на "отклонён"
+// @Tags Messages
+// @Accept json
+// @Produce json
+// @Param id path int true "ID сообщения"
+// @Security BearerAuth
+// @Router /messages/{id}/reject [put]
 func (h *Handler) MessageReject(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -158,9 +217,9 @@ func (h *Handler) MessageReject(ctx *gin.Context) {
 		return
 	}
 
-	moderatorID := getCurrentModeratorID(ctx) // Получаем ID текущего пользователя
+	moderatorID := ctx.MustGet("userID").(uint) // Получаем ID текущего пользователя
 
-	if err := h.Repository.MessageReject(uint(messageID), moderatorID); err != nil {
+	if err := h.repository.MessageReject(uint(messageID), moderatorID); err != nil {
 		if err.Error() == "статус уже установлен на 'отклонён'" {
 			h.errorHandler(ctx, http.StatusConflict, err.Error())
 		} else if err.Error() == "сообщение не сформировано, вы не можете его отклонить" {
@@ -178,6 +237,15 @@ func (h *Handler) MessageReject(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Статус обновлен на 'отклонён' успешно"})
 }
 
+// MessageDelete
+// @Summary Удалить сообщение
+// @Description Устанавливает статус сообщения на "удалён"
+// @Tags Messages
+// @Accept json
+// @Produce json
+// @Param id path int true "ID сообщения"
+// @Security BearerAuth
+// @Router /messages/{id}/delete [delete]
 func (h *Handler) MessageDelete(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -185,9 +253,9 @@ func (h *Handler) MessageDelete(ctx *gin.Context) {
 		return
 	}
 
-	creatorID := getCurrentUserID(ctx) // Получаем ID текущего пользователя
+	creatorID := ctx.MustGet("userID").(uint) // Получаем ID текущего пользователя
 
-	if err := h.Repository.MessageDelete(uint(messageID), creatorID); err != nil {
+	if err := h.repository.MessageDelete(uint(messageID), creatorID); err != nil {
 		if err.Error() == "только создатель заявки может ее изменить" {
 			h.errorHandler(ctx, http.StatusForbidden, err.Error())
 		} else if err.Error() == "статус уже установлен на 'удалён'" {

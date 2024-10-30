@@ -11,18 +11,22 @@ import (
 	"time"
 )
 
-func (r *Repository) GetChats(userID uint, name string) ([]Chat, uint, int64, error) {
-	var chats []Chat
+func (r *Repository) GetChats(userID uint, name string) ([]ds.ChatResponse, uint, int64, error) {
+	var chats []ds.ChatResponse
 
-	query := r.db.Model(&Chat{}).Where("is_delete = ?", false)
+	query := r.db.Model(&ds.ChatResponse{}).Where("is_delete = ?", false)
 
 	if name != "" {
 		query = query.Where("name ILIKE ?", "%"+name+"%")
 	}
 
-	err := query.Find(&chats).Error
+	err := query.Model(&ds.Chat{}).Find(&chats).Error
 	if err != nil {
 		return nil, 0, 0, fmt.Errorf("ошибка при получении списка чатов: %w", err)
+	}
+
+	if userID == 0 {
+		return chats, 0, 0, nil
 	}
 
 	var draft ds.Message
@@ -42,11 +46,11 @@ func (r *Repository) GetChats(userID uint, name string) ([]Chat, uint, int64, er
 	return chats, draft.ID, count, nil
 }
 
-func (r *Repository) GetChatByID(chatID uint) (Chat, error) {
-	var chat Chat
+func (r *Repository) GetChatByID(chatID uint) (ds.ChatResponse, error) {
+	var chat ds.ChatResponse
 
 	// Поиск чата в базе данных
-	err := r.db.Where("is_delete = ?", false).First(&chat, chatID).Error
+	err := r.db.Model(&ds.Chat{}).Where("is_delete = ?", false).First(&chat, chatID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return chat, fmt.Errorf("чат с id %d не найден", chatID)
@@ -90,16 +94,16 @@ func (r *Repository) DeleteChat(chatID uint, imageName string) error {
 	return nil
 }
 
-func (r *Repository) AddChatToMessage(chatID uint) error {
+func (r *Repository) AddChatToMessage(chatID, userID uint) error {
 	var message ds.Message
 
-	err := r.db.Where("status = ?", "черновик").First(&message).Error
+	err := r.db.Where("status = ? AND creator_id = ?", "черновик", userID).First(&message).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		newList := ds.Message{
 			Status:     "черновик",
 			DateCreate: time.Now(),
-			CreatorID:  1,
+			CreatorID:  userID,
 		}
 		if err := r.db.Create(&newList).Error; err != nil {
 			return fmt.Errorf("ошибка создания черновика")
@@ -129,7 +133,7 @@ func (r *Repository) AddChatToMessage(chatID uint) error {
 }
 
 func (r *Repository) ReplaceChatImage(chatID uint, imageName string, imageFile io.Reader, imageSize int64) error {
-	var chat Chat
+	var chat ds.Chat
 
 	// Найти чат по ID
 	if err := r.db.First(&chat, chatID).Error; err != nil {
@@ -148,12 +152,14 @@ func (r *Repository) ReplaceChatImage(chatID uint, imageName string, imageFile i
 	_, errMinio := r.MinioClient.PutObject(context.Background(), "test", imageName, imageFile, imageSize, minio.PutObjectOptions{
 		ContentType: "image/png",
 	})
+	if errMinio != nil {
+		return errMinio
+	}
 
 	chat.Img = fmt.Sprintf("http://127.0.0.1:9000/test/%d.png", chatID)
 	errDB := r.db.Save(&chat).Error
-
-	if errMinio != nil || errDB != nil {
-		return fmt.Errorf("ошибка загрузки нового изображения для чата %d", chatID)
+	if errDB != nil {
+		return fmt.Errorf("ошибка загрузки нового изображения для чата %d: %v", chatID, errDB)
 	}
 
 	return nil

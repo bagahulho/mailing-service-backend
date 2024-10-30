@@ -6,3 +6,14 @@ type User struct {
 	Password    string `gorm:"type:varchar(100);not null" json:"password"`
 	IsModerator bool   `gorm:"type:boolean;default:false" json:"is_moderator"`
 }
+
+type UserRespReq struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+type UserRegisterReq struct {
+	Login          string `json:"login"`
+	Password       string `json:"password"`
+	RepeatPassword string `json:"repeat_password"`
+}

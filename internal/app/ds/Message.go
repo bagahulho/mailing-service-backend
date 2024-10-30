@@ -18,3 +18,30 @@ type Message struct {
 	Creator   User `gorm:"foreignKey:CreatorID"`
 	Moderator User `gorm:"foreignKey:ModeratorID"`
 }
+
+type MessageWithUsers struct {
+	ID         uint      `json:"id"`
+	Status     string    `json:"status"`
+	Text       string    `json:"text,omitempty"`
+	DateCreate time.Time `json:"date_create"`
+	DateUpdate time.Time `json:"date_update,omitempty"`
+	DateFinish time.Time `json:"date_finish,omitempty"`
+	Creator    string    `json:"creator"`
+	Moderator  string    `json:"moderator,omitempty"`
+}
+
+type MessageDetail struct {
+	ID         uint                    `json:"id"`
+	Status     string                  `json:"status"`
+	Text       string                  `json:"text,omitempty"`
+	DateCreate time.Time               `json:"date_create"`
+	DateUpdate time.Time               `json:"date_update,omitempty"`
+	DateFinish time.Time               `json:"date_finish,omitempty"`
+	Creator    string                  `json:"creator"`
+	Moderator  string                  `json:"moderator,omitempty"`
+	Chats      []ChatResponseWithFlags `json:"chats"`
+}
+
+type UpdateMessageTextInput struct {
+	Text string `json:"text" binding:"required"` // Обязательное поле текста
+}
