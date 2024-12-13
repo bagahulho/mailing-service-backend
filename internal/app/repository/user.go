@@ -1,12 +1,13 @@
 package repository
 
 import (
-	"RIP/internal/app/ds"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"time"
+
+	"RIP/internal/app/ds"
+	"github.com/go-redis/redis/v8"
 )
 
 func (r *Repository) SaveSession(ctx context.Context, userID uint, token string, expiration time.Duration) error {
@@ -51,29 +52,22 @@ func (r *Repository) AuthenticateUser(login, password string) (*ds.User, error) 
 	return &user, nil
 }
 
-//func (r *repository) UpdateUser(newUser ds.User, id uint) (ds.User, error) {
-//	var user ds.User
-//	if err := r.db.First(&user, id).Error; err != nil {
-//		return user, fmt.Errorf("пользователь с id %d не найден", id)
-//	}
-//
-//	if newUser.Login != "" {
-//		user.Login = newUser.Login
-//	}
-//	if newUser.Password != "" {
-//		user.Password = newUser.Password
-//	}
-//
-//	if err := r.db.Save(user).Error; err != nil {
-//		return user, err
-//	}
-//	return user, nil
-//}
-//
-//func (r *repository) AuthUser() {
-//
-//}
-//
-//func (r *repository) DeAuthUser() {
-//
-//}
+func (r *Repository) UpdateUser(newUser ds.UserUpdateReq, id uint) (ds.User, error) {
+	var user ds.User
+	if err := r.db.First(&user, id).Error; err != nil {
+		return ds.User{}, fmt.Errorf("пользователь с id %d не найден", id)
+	}
+
+	if newUser.CurrentPassword != user.Password {
+		return ds.User{}, fmt.Errorf("введен неверный текущий пароль")
+	}
+
+	if newUser.NewPassword != "" {
+		user.Password = newUser.NewPassword
+	}
+
+	if err := r.db.Save(user).Error; err != nil {
+		return ds.User{}, err
+	}
+	return user, nil
+}

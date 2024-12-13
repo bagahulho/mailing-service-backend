@@ -2,11 +2,12 @@ package handler
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 func (h *Handler) AuthMiddleware(ctx *gin.Context) {

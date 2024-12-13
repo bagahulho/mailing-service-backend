@@ -17,3 +17,8 @@ type UserRegisterReq struct {
 	Password       string `json:"password"`
 	RepeatPassword string `json:"repeat_password"`
 }
+
+type UserUpdateReq struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}

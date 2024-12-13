@@ -1,14 +1,15 @@
 package repository
 
 import (
-	"RIP/internal/app/ds"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/minio/minio-go/v7"
-	"gorm.io/gorm"
 	"io"
 	"time"
+
+	"RIP/internal/app/ds"
+	_ "github.com/minio/minio-go/v7"
+	"gorm.io/gorm"
 )
 
 func (r *Repository) GetChats(userID uint, name string) ([]ds.ChatResponse, uint, int64, error) {

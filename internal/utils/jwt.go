@@ -1,14 +1,16 @@
 package utils
 
 import (
-	"github.com/golang-jwt/jwt"
 	"os"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
-func GenerateJWT(userID uint, isModerator bool) (string, error) {
+func GenerateJWT(userID uint, username string, isModerator bool) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID":      userID,
+		"username":    username,
 		"isModerator": isModerator,
 		"exp":         time.Now().Add(1 * time.Hour).Unix(), // Токен действует 1 час
 	})

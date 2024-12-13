@@ -1,13 +1,14 @@
 package repository
 
 import (
-	"RIP/internal/app/ds"
 	"database/sql"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"math/rand"
 	"time"
+
+	"RIP/internal/app/ds"
+	"gorm.io/gorm"
 )
 
 func (r *Repository) GetMessagesFiltered(status string, hasStartDate, hasEndDate bool, startDate, endDate time.Time, userID uint, isModerator bool) ([]ds.MessageWithUsers, error) {
@@ -33,10 +34,10 @@ func (r *Repository) GetMessagesFiltered(status string, hasStartDate, hasEndDate
 
 	// Добавляем фильтрацию по диапазону дат, если даты указаны
 	if hasStartDate {
-		query = query.Where("messages.date_update >= ?", startDate)
+		query = query.Where("messages.date_create >= ?", startDate)
 	}
 	if hasEndDate {
-		query = query.Where("messages.date_update <= ?", endDate)
+		query = query.Where("messages.date_create <= ?", endDate)
 	}
 
 	if err := query.Find(&messages).Error; err != nil {

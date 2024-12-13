@@ -48,13 +48,13 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 		protected.PUT("/messages/:id/reject", h.ModeratorMiddleware, h.MessageReject)
 
 		protected.POST("/user/logout", h.Logout)
+		protected.PUT("/user/update", h.UpdateUser)
 	}
 	router.GET("/chats", h.GetChats)
 	router.GET("/chats/:id", h.GetChatByID)
 
 	router.POST("/user/reg", h.RegisterUser)
 	router.POST("/user/login", h.Authenticate)
-	//router.PUT("/user/update/:id", h.UpdateUser)
 }
 
 func (h *Handler) RegisterStatic(router *gin.Engine) {

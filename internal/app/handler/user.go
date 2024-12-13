@@ -1,13 +1,14 @@
 package handler
 
 import (
-	"RIP/internal/app/ds"
-	"RIP/internal/utils"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
 	"time"
+
+	"RIP/internal/app/ds"
+	"RIP/internal/utils"
+	"github.com/gin-gonic/gin"
 )
 
 // RegisterUser Регистрация нового пользователя
@@ -73,7 +74,7 @@ func (h *Handler) Authenticate(ctx *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.IsModerator)
+	token, err := utils.GenerateJWT(user.ID, user.Login, user.IsModerator)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать токен"})
 		return
@@ -113,98 +114,32 @@ func (h *Handler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Вы успешно вышли из системы"})
 }
 
-//func (h *Handler) Authenticate(ctx *gin.Context) {
-//	var input ds.UserRespReq
-//	if err := ctx.ShouldBindJSON(&input); err != nil {
-//		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
-//		return
-//	}
-//
-//	user, err := h.repository.AuthenticateUser(input.Login, input.Password)
-//	if err != nil {
-//		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Неверные учетные данные"})
-//		return
-//	}
-//
-//	token, err := utils.GenerateJWT(user.ID, user.IsModerator)
-//	if err != nil {
-//		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать токен"})
-//		return
-//	}
-//
-//	ctx.JSON(http.StatusOK, gin.H{"your token": token})
-//}
-//
-//func (h *Handler) Logout(c *gin.Context) {
-//	token, err := c.Cookie("session_token")
-//	if err != nil {
-//		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-//		return
-//	}
-//
-//	// Удаляем токен из Redis
-//	ctx := context.Background()
-//	err = h.redisClient.Del(ctx, token).Err()
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not logout"})
-//		return
-//	}
-//
-//	// Удаляем куку
-//	c.SetCookie("session_token", "", -1, "/", "localhost", false, true)
-//
-//	c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
-//}
+func (h *Handler) UpdateUser(ctx *gin.Context) {
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
+		return
+	}
 
-//func (h *Handler) UpdateUser(ctx *gin.Context) {
-//	userID, err := strconv.Atoi(ctx.Param("id"))
-//	if err != nil {
-//		h.errorHandler(ctx, http.StatusBadRequest, "некорректный ID пользователя")
-//		return
-//	}
-//
-//	// Находим пользователя по ID.
-//	//user, err := repo.GetUserByID(userID)
-//	//if err != nil {
-//	//	c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-//	//	return
-//	//}
-//
-//	var input ds.User
-//
-//	// Читаем данные из тела запроса.
-//	if err := ctx.BindJSON(&input); err != nil {
-//		h.errorHandler(ctx, http.StatusBadRequest, "Invalid JSON format")
-//		return
-//	}
-//
-//	//// Проверяем, изменился ли логин, и валидируем его.
-//	//if strings.TrimSpace(input.Login) != "" && input.Login != user.Login {
-//	//	user.Login = input.Login
-//	//} else {
-//	//	c.JSON(http.StatusBadRequest, gin.H{"error": "Login is required and must be unique"})
-//	//	return
-//	//}
-//
-//	// Обновляем пользователя в базе данных.
-//	newUser, err := h.repository.UpdateUser(input, uint(userID))
-//	if err != nil {
-//		h.errorHandler(ctx, http.StatusInternalServerError, err.Error())
-//		return
-//	}
-//
-//	// Возвращаем успешный ответ.
-//	ctx.JSON(http.StatusOK, gin.H{
-//		"id":           newUser.ID,
-//		"login":        newUser.Login,
-//		"is_moderator": newUser.IsModerator,
-//	})
-//}
-//
-//func (h *Handler) AuthUser(ctx *gin.Context) {
-//
-//}
-//
-//func (h *Handler) DeAuthUser(ctx *gin.Context) {
-//
-//}
+	var input ds.UserUpdateReq
+
+	// Читаем данные из тела запроса.
+	if err := ctx.BindJSON(&input); err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, "Invalid JSON format")
+		return
+	}
+
+	// Обновляем пользователя в базе данных.
+	newUser, err := h.repository.UpdateUser(input, userID.(uint))
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Возвращаем успешный ответ.
+	ctx.JSON(http.StatusOK, gin.H{
+		"id":           newUser.ID,
+		"login":        newUser.Login,
+		"is_moderator": newUser.IsModerator,
+	})
+}
