@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"RIP/internal/app/ds"
 	"RIP/internal/utils"
@@ -91,7 +90,7 @@ func (h *Handler) Authenticate(ctx *gin.Context) {
 	}
 
 	// Сохранение сессии в Redis с использованием контекста запроса
-	if err := h.repository.SaveSession(ctx.Request.Context(), user.ID, token, 1*time.Hour); err != nil {
+	if err := h.repository.SaveSession(ctx.Request.Context(), user.ID, token); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось сохранить сессию"})
 		return
 	}
