@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"RIP/internal/app/ds"
 	"github.com/go-redis/redis/v8"
 )
 
-func (r *Repository) SaveSession(ctx context.Context, userID uint, token string, expiration time.Duration) error {
+func (r *Repository) SaveSession(ctx context.Context, userID uint, token string) error {
 	err := r.redisClient.Set(ctx, fmt.Sprintf("session:%d", userID), token, 0).Err()
 	return err
 }
