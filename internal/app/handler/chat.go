@@ -1,32 +1,44 @@
 package handler
 
 import (
-	"RIP/internal/app/ds"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"RIP/internal/app/ds"
+	"RIP/internal/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 // GetChats @Summary Получить чаты пользователя
-// @Description Возвращает список чатов для конкретного пользователя с указанием черновиков
+// @Description Возвращает список чатов для конкретного пользователя с указанием черновиков.
 // @Tags Chats
 // @Param name query string false "Фильтр по имени чата"
-// @Success 200 {object} ds.GetChatsResponse
-// @Failure 500 {object} ds.ErrorResp
+// @Produce json
+// @Success 200 {object} ds.GetChatsResponse "Список чатов с черновиками"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /chats [get]
 func (h *Handler) GetChats(ctx *gin.Context) {
-	//userID := ctx.MustGet("userID").(uint)
-	userID, exists := ctx.Get("userID")
-	if !exists {
-		userID = 0
+	userID := uint(0)
+	name := ctx.Query("name")
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader != "" {
+		parts := strings.Split(authHeader, " ")
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			tokenStr := parts[1]
+			token, _ := utils.ParseJWT(tokenStr)
+			if token != nil {
+				claims, ok := token.Claims.(jwt.MapClaims)
+				if ok {
+					userID = uint(claims["userID"].(float64))
+				}
+			}
+		}
 	}
 
-	name := ctx.Query("name")
-
-	// Вызов репозитория для получения чатов
-	chats, draftID, draftCount, err := h.repository.GetChats(uint(userID.(int)), name)
+	chats, draftID, draftCount, err := h.repository.GetChats(userID, name)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err.Error())
 		return
@@ -39,10 +51,15 @@ func (h *Handler) GetChats(ctx *gin.Context) {
 	})
 }
 
-// GetChatByID @Summary Получить чат по ID
-// @Description Возвращает информацию о чате по его ID
+// GetChatByID
+// @Summary Получить чат по ID
+// @Description Возвращает информацию о чате по его ID.
 // @Tags Chats
+// @Produce json
 // @Param id path int true "ID чата"
+// @Success 200 {object} ds.ChatResponse "Информация о чате"
+// @Failure 400 {object} ds.ErrorResp "Некорректный ID чата"
+// @Failure 404 {object} ds.ErrorResp "Чат не найден"
 // @Router /chats/{id} [get]
 func (h *Handler) GetChatByID(ctx *gin.Context) {
 	chatID, err := strconv.Atoi(ctx.Param("id"))
@@ -60,13 +77,17 @@ func (h *Handler) GetChatByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, chat)
 }
 
-// CreateChat @Summary Создать новый чат
-// @Description Создает новый чат с указанными данными
+// CreateChat
+// @Summary Создать новый чат
+// @Description Создает новый чат с указанными данными.
 // @Tags Chats
-// @Param chat body ds.ChatRequest true "Информация о чате"
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param chat body ds.ChatRequest true "Информация о чате"
+// @Success 201 {object} ds.Chat "Созданный чат"
+// @Failure 400 {object} ds.ErrorResp "Неверные данные или отсутствует имя/никнейм"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /chats/create [post]
 func (h *Handler) CreateChat(ctx *gin.Context) {
 	var chat ds.Chat
@@ -97,14 +118,18 @@ func (h *Handler) CreateChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, chat)
 }
 
-// UpdateChat @Summary Обновить чат
-// @Description Обновляет данные существующего чата
+// UpdateChat
+// @Summary Обновить чат
+// @Description Обновляет данные существующего чата.
 // @Tags Chats
 // @Accept json
 // @Produce json
 // @Param id path int true "ID чата"
 // @Param chat body ds.ChatRequest true "Обновленные данные чата"
 // @Security BearerAuth
+// @Success 200 {object} ds.Chat "Обновлённый чат"
+// @Failure 400 {object} ds.ErrorResp "Некорректный ID чата или неверные данные"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /chats/{id} [put]
 func (h *Handler) UpdateChat(ctx *gin.Context) {
 	var chat ds.Chat
@@ -138,11 +163,16 @@ func (h *Handler) UpdateChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, chat)
 }
 
-// DeleteChat @Summary Удалить чат
-// @Description Удаляет чат по его ID и удаляет изображение из Minio
+// DeleteChat
+// @Summary Удалить чат
+// @Description Удаляет чат по его ID и удаляет изображение из Minio.
 // @Tags Chats
 // @Param id path int true "ID чата"
 // @Security BearerAuth
+// @Produce json
+// @Success 201 {object} ds.OkResp "Сообщение об успешном удалении"
+// @Failure 400 {object} ds.ErrorResp "Некорректный ID чата"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /chats/{id} [delete]
 func (h *Handler) DeleteChat(ctx *gin.Context) {
 	chatID, err := strconv.Atoi(ctx.Param("id"))
@@ -164,11 +194,16 @@ func (h *Handler) DeleteChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"message": fmt.Sprintf("чат (id-%d) успешно удален", chatID)})
 }
 
-// AddChatToMessage @Summary Добавить чат в сообщение
-// @Description Добавляет чат к конкретному сообщению
+// AddChatToMessage
+// @Summary Добавить чат в сообщение
+// @Description Добавляет чат к конкретному сообщению.
 // @Tags Chats
 // @Param id path int true "ID чата"
 // @Security BearerAuth
+// @Produce json
+// @Success 201 {object} ds.OkResp "Сообщение о добавлении чата"
+// @Failure 400 {object} ds.ErrorResp "Некорректный ID чата"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /chat/{id}/in-message [post]
 func (h *Handler) AddChatToMessage(ctx *gin.Context) {
 	chatID, err := strconv.Atoi(ctx.Param("id"))
@@ -187,13 +222,18 @@ func (h *Handler) AddChatToMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"message": fmt.Sprintf("чат (id-%d) успешно добавлен в сообщение", chatID)})
 }
 
-// ReplaceChatImage @Summary Заменить изображение чата
-// @Description Загружает и заменяет изображение чата
+// ReplaceChatImage
+// @Summary Заменить изображение чата
+// @Description Загружает и заменяет изображение чата.
 // @Tags Chats
 // @Accept multipart/form-data
+// @Produce json
 // @Param id path int true "ID чата"
 // @Param image formData file true "Новое изображение для чата"
 // @Security BearerAuth
+// @Success 200 {object} ds.OkResp "Сообщение об успешной загрузке"
+// @Failure 400 {object} ds.ErrorResp "Невалидные данные или неправильный формат файла"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /chats/{id}/new-image [post]
 func (h *Handler) ReplaceChatImage(ctx *gin.Context) {
 	chatID, err := strconv.Atoi(ctx.Param("id"))

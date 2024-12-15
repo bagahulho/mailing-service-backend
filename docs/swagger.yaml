@@ -1,4 +1,28 @@
 definitions:
+  ds.AuthResp:
+    properties:
+      token:
+        type: string
+    type: object
+  ds.Chat:
+    properties:
+      friends:
+        type: integer
+      id:
+        type: integer
+      img:
+        type: string
+      info:
+        type: string
+      isDelete:
+        type: boolean
+      name:
+        type: string
+      nickname:
+        type: string
+      subscribers:
+        type: integer
+    type: object
   ds.ChatRequest:
     properties:
       friends:
@@ -29,12 +53,33 @@ definitions:
       subscribers:
         type: integer
     type: object
+  ds.ChatResponseWithFlags:
+    properties:
+      friends:
+        type: integer
+      id:
+        type: integer
+      img:
+        type: string
+      info:
+        type: string
+      is_read:
+        type: boolean
+      name:
+        type: string
+      nickname:
+        type: string
+      sound:
+        type: boolean
+      subscribers:
+        type: integer
+    type: object
   ds.ErrorResp:
     properties:
       description:
         type: string
       status:
-        type: integer
+        type: string
     type: object
   ds.GetChatsResponse:
     properties:
@@ -47,6 +92,53 @@ definitions:
       draft_count:
         type: integer
     type: object
+  ds.MessageDetail:
+    properties:
+      chats:
+        items:
+          $ref: '#/definitions/ds.ChatResponseWithFlags'
+        type: array
+      creator:
+        type: string
+      date_create:
+        type: string
+      date_finish:
+        type: string
+      date_update:
+        type: string
+      id:
+        type: integer
+      moderator:
+        type: string
+      status:
+        type: string
+      text:
+        type: string
+    type: object
+  ds.MessageWithUsers:
+    properties:
+      creator:
+        type: string
+      date_create:
+        type: string
+      date_finish:
+        type: string
+      date_update:
+        type: string
+      id:
+        type: integer
+      moderator:
+        type: string
+      status:
+        type: string
+      text:
+        type: string
+    type: object
+  ds.OkResp:
+    properties:
+      message:
+        type: string
+    type: object
   ds.UpdateMessageTextInput:
     properties:
       text:
@@ -55,6 +147,29 @@ definitions:
     required:
     - text
     type: object
+  ds.UpdateMessageTextResp:
+    properties:
+      text:
+        type: string
+    type: object
+  ds.UserRegisterReq:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+      repeat_password:
+        type: string
+    type: object
+  ds.UserRegisterResp:
+    properties:
+      id:
+        type: integer
+      is_moderator:
+        type: boolean
+      login:
+        type: string
+    type: object
   ds.UserRespReq:
     properties:
       login:
@@ -62,72 +177,126 @@ definitions:
       password:
         type: string
     type: object
+  ds.UserUpdateReq:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
   /chat/{id}/in-message:
     post:
-      description: Добавляет чат к конкретному сообщению
+      description: Добавляет чат к конкретному сообщению.
       parameters:
       - description: ID чата
         in: path
         name: id
         required: true
         type: integer
-      responses: {}
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Сообщение о добавлении чата
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "400":
+          description: Некорректный ID чата
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
+      summary: Добавить чат в сообщение
       tags:
       - Chats
   /chats:
     get:
       description: Возвращает список чатов для конкретного пользователя с указанием
-        черновиков
+        черновиков.
       parameters:
       - description: Фильтр по имени чата
         in: query
         name: name
         type: string
+      produces:
+      - application/json
       responses:
         "200":
-          description: OK
+          description: Список чатов с черновиками
           schema:
             $ref: '#/definitions/ds.GetChatsResponse'
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/ds.ErrorResp'
       tags:
       - Chats
   /chats/{id}:
     delete:
-      description: Удаляет чат по его ID и удаляет изображение из Minio
+      description: Удаляет чат по его ID и удаляет изображение из Minio.
       parameters:
       - description: ID чата
         in: path
         name: id
         required: true
         type: integer
-      responses: {}
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Сообщение об успешном удалении
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "400":
+          description: Некорректный ID чата
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
+      summary: Удалить чат
       tags:
       - Chats
     get:
-      description: Возвращает информацию о чате по его ID
+      description: Возвращает информацию о чате по его ID.
       parameters:
       - description: ID чата
         in: path
         name: id
         required: true
         type: integer
-      responses: {}
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о чате
+          schema:
+            $ref: '#/definitions/ds.ChatResponse'
+        "400":
+          description: Некорректный ID чата
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "404":
+          description: Чат не найден
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+      summary: Получить чат по ID
       tags:
       - Chats
     put:
       consumes:
       - application/json
-      description: Обновляет данные существующего чата
+      description: Обновляет данные существующего чата.
       parameters:
       - description: ID чата
         in: path
@@ -142,16 +311,29 @@ paths:
           $ref: '#/definitions/ds.ChatRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Обновлённый чат
+          schema:
+            $ref: '#/definitions/ds.Chat'
+        "400":
+          description: Некорректный ID чата или неверные данные
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
+      summary: Обновить чат
       tags:
       - Chats
   /chats/{id}/new-image:
     post:
       consumes:
       - multipart/form-data
-      description: Загружает и заменяет изображение чата
+      description: Загружает и заменяет изображение чата.
       parameters:
       - description: ID чата
         in: path
@@ -163,16 +345,31 @@ paths:
         name: image
         required: true
         type: file
-      responses: {}
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сообщение об успешной загрузке
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "400":
+          description: Невалидные данные или неправильный формат файла
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
+      summary: Заменить изображение чата
       tags:
       - Chats
   /chats/create:
     post:
       consumes:
       - application/json
-      description: Создает новый чат с указанными данными
+      description: Создает новый чат с указанными данными.
       parameters:
       - description: Информация о чате
         in: body
@@ -182,14 +379,27 @@ paths:
           $ref: '#/definitions/ds.ChatRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "201":
+          description: Созданный чат
+          schema:
+            $ref: '#/definitions/ds.Chat'
+        "400":
+          description: Неверные данные или отсутствует имя/никнейм
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
+      summary: Создать новый чат
       tags:
       - Chats
   /message-chats/delete/{message_id}/{chat_id}:
     delete:
-      description: Удаляет чат с указанным ID из сообщения с указанным ID
+      description: Удаляет чат с указанным ID из сообщения с указанным ID.
       parameters:
       - description: ID сообщения
         in: path
@@ -203,7 +413,19 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Сообщение об успешном удалении чата
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "400":
+          description: Некорректный ID
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
       summary: Удаление чата из сообщения
@@ -211,8 +433,7 @@ paths:
       - Message-Chats
   /message-chats/switch/{message_id}/{chat_id}:
     put:
-      description: Переключает значение поля "со звуком" у чата с указанным ID в сообщении
-        с указанным ID
+      description: Переключает значение поля "со звуком" у чата в сообщении.
       parameters:
       - description: ID сообщения
         in: path
@@ -226,10 +447,22 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Сообщение об успешном изменении значения
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "400":
+          description: Некорректный ID
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
-      summary: Переключение поля "со звуком" у чата в сообщении
+      summary: Переключение поля "со звуком"
       tags:
       - Message-Chats
   /messages:
@@ -237,23 +470,37 @@ paths:
       consumes:
       - application/json
       description: Возвращает список сообщений, отфильтрованных по статусу и диапазону
-        дат
+        дат.
       parameters:
       - description: Статус сообщения
         in: query
         name: status
         type: string
-      - description: Начальная дата в формате YYYY-MM-DD
+      - description: Начальная дата (YYYY-MM-DD)
         in: query
         name: start_date
         type: string
-      - description: Конечная дата в формате YYYY-MM-DD
+      - description: Конечная дата (YYYY-MM-DD)
         in: query
         name: end_date
         type: string
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Список сообщений
+          schema:
+            items:
+              $ref: '#/definitions/ds.MessageWithUsers'
+            type: array
+        "400":
+          description: Некорректный формат дат
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
       summary: Получить отфильтрованные сообщения
@@ -263,7 +510,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Возвращает полные данные о сообщении, включая чаты
+      description: Возвращает полные данные о сообщении, включая чаты.
       parameters:
       - description: ID сообщения
         in: path
@@ -272,7 +519,15 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Детальная информация о сообщении
+          schema:
+            $ref: '#/definitions/ds.MessageDetail'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
       summary: Получить сообщение по ID
@@ -282,7 +537,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: Устанавливает статус сообщения на "удалён"
+      description: Устанавливает статус сообщения на "удалён".
       parameters:
       - description: ID сообщения
         in: path
@@ -291,7 +546,23 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Сообщение об успешном обновлении статуса
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "403":
+          description: Действие запрещено
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "409":
+          description: Конфликт статусов
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
       summary: Удалить сообщение
@@ -301,7 +572,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Устанавливает статус сообщения на "завершён"
+      description: Устанавливает статус сообщения на "завершён".
       parameters:
       - description: ID сообщения
         in: path
@@ -310,7 +581,19 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Сообщение об успешном обновлении статуса
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "409":
+          description: Конфликт статусов
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
       summary: Завершить сообщение
@@ -320,7 +603,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Устанавливает статус сообщения на "сформирован"
+      description: Устанавливает статус сообщения на "сформирован".
       parameters:
       - description: ID сообщения
         in: path
@@ -329,7 +612,27 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Сообщение об успешном обновлении статуса
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "400":
+          description: Неверный ID сообщения или пустой текст
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "403":
+          description: Действие запрещено
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "409":
+          description: Конфликт статусов
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
       summary: Сформировать сообщение
@@ -339,7 +642,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Устанавливает статус сообщения на "отклонён"
+      description: Устанавливает статус сообщения на "отклонён".
       parameters:
       - description: ID сообщения
         in: path
@@ -348,7 +651,19 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Сообщение об успешном обновлении статуса
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "409":
+          description: Конфликт статусов
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
       summary: Отклонить сообщение
@@ -358,7 +673,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Обновляет текст сообщения по ID
+      description: Обновляет текст сообщения по ID.
       parameters:
       - description: ID сообщения
         in: path
@@ -373,7 +688,19 @@ paths:
           $ref: '#/definitions/ds.UpdateMessageTextInput'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Обновлённый текст
+          schema:
+            $ref: '#/definitions/ds.UpdateMessageTextResp'
+        "400":
+          description: Некорректный ID или неверный формат данных
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - BearerAuth: []
       summary: Обновить текст сообщения
@@ -381,7 +708,9 @@ paths:
       - Messages
   /user/login:
     post:
-      description: Аутентификация пользователя и создание JWT токена
+      consumes:
+      - application/json
+      description: Аутентификация пользователя и получение JWT-токена.
       parameters:
       - description: Данные для входа
         in: body
@@ -391,16 +720,44 @@ paths:
           $ref: '#/definitions/ds.UserRespReq'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Токен JWT
+          schema:
+            $ref: '#/definitions/ds.AuthResp'
+        "400":
+          description: Неверный формат данных
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "401":
+          description: Неверные учетные данные
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       summary: Вход пользователя
       tags:
       - Auth
   /user/logout:
     post:
-      description: Удаляет текущую сессию пользователя и завершает сеанс
+      description: Завершение текущей сессии пользователя.
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Сообщение о выходе
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       security:
       - ApiKeyAuth: []
       summary: Выход из системы
@@ -408,18 +765,72 @@ paths:
       - Auth
   /user/reg:
     post:
-      description: Создает нового пользователя с указанными логином и паролем
+      consumes:
+      - application/json
+      description: Создает нового пользователя с указанными логином и паролем.
       parameters:
       - description: Данные для регистрации пользователя
         in: body
         name: input
         required: true
         schema:
-          $ref: '#/definitions/ds.UserRespReq'
+          $ref: '#/definitions/ds.UserRegisterReq'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "201":
+          description: Сообщение об успешной регистрации
+          schema:
+            $ref: '#/definitions/ds.OkResp'
+        "400":
+          description: Неверные данные или пароли не совпадают
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "409":
+          description: Пользователь уже существует
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
       summary: Регистрация пользователя
+      tags:
+      - Auth
+  /user/update:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные текущего пользователя.
+      parameters:
+      - description: Новые данные пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/ds.UserUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обновлённый пользователь
+          schema:
+            $ref: '#/definitions/ds.UserRegisterResp'
+        "400":
+          description: Некорректный формат данных
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/ds.ErrorResp'
+      security:
+      - BearerAuth: []
+      summary: Обновить данные пользователя
       tags:
       - Auth
 securityDefinitions:

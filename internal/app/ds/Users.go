@@ -18,7 +18,17 @@ type UserRegisterReq struct {
 	RepeatPassword string `json:"repeat_password"`
 }
 
+type UserRegisterResp struct {
+	ID          uint   `json:"id"`
+	Login       string `json:"login"`
+	IsModerator bool   `json:"is_moderator"`
+}
+
 type UserUpdateReq struct {
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
+}
+
+type AuthResp struct {
+	Token string `json:"token"`
 }

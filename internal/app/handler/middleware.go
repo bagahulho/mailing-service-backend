@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
-	"os"
 	"strings"
 
+	"RIP/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
@@ -14,23 +13,23 @@ func (h *Handler) AuthMiddleware(ctx *gin.Context) {
 	// Извлечение токена из заголовка Authorization
 	authHeader := ctx.GetHeader("Authorization")
 	if authHeader == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Отсутствует токен"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"status":      "fail",
+			"description": "Отсутствует токен",
+		})
 		ctx.Abort()
 		return
 	}
 
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-	// Парсинг и валидация токена
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("неверный метод подписи")
-		}
-		return []byte(os.Getenv("JWT_KEY")), nil // Используем тот же секретный ключ
-	})
+	token, err := utils.ParseJWT(tokenString)
 
 	if err != nil || !token.Valid {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительный токен"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"status":      "fail",
+			"description": "Недействительный токен",
+		})
 		ctx.Abort()
 		return
 	}
@@ -38,7 +37,10 @@ func (h *Handler) AuthMiddleware(ctx *gin.Context) {
 	// Извлечение userID из токена
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Ошибка обработки токена"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"status":      "fail",
+			"description": "Ошибка обработки токена",
+		})
 		ctx.Abort()
 		return
 	}
@@ -49,7 +51,10 @@ func (h *Handler) AuthMiddleware(ctx *gin.Context) {
 	// Проверка сессии в Redis
 	redisToken, err := h.repository.GetSession(ctx.Request.Context(), userID)
 	if err != nil || redisToken != tokenString {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Сессия не найдена или истекла"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"status":      "fail",
+			"description": "Сессия не найдена или истекла",
+		})
 		ctx.Abort()
 		return
 	}
@@ -63,7 +68,10 @@ func (h *Handler) AuthMiddleware(ctx *gin.Context) {
 func (h *Handler) ModeratorMiddleware(ctx *gin.Context) {
 	_, exists := ctx.Get("userID")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"status":      "fail",
+			"description": "Пользователь не авторизован",
+		})
 		ctx.Abort()
 		return
 	}
@@ -71,7 +79,10 @@ func (h *Handler) ModeratorMiddleware(ctx *gin.Context) {
 	isModerator := ctx.MustGet("isModerator").(bool)
 
 	if !isModerator {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещен"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"status":      "fail",
+			"description": "Доступ запрещен",
+		})
 		ctx.Abort()
 		return
 	}

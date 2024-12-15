@@ -45,3 +45,7 @@ type MessageDetail struct {
 type UpdateMessageTextInput struct {
 	Text string `json:"text" binding:"required"` // Обязательное поле текста
 }
+
+type UpdateMessageTextResp struct {
+	Text string `json:"text"`
+}

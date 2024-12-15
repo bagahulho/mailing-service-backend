@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"RIP/internal/app/ds"
+	"github.com/minio/minio-go/v7"
 	_ "github.com/minio/minio-go/v7"
 	"gorm.io/gorm"
 )
@@ -43,7 +44,6 @@ func (r *Repository) GetChats(userID uint, name string) ([]ds.ChatResponse, uint
 			return nil, 0, 0, fmt.Errorf("ошибка подсчета чатов в черновике: %w", err)
 		}
 	}
-
 	return chats, draft.ID, count, nil
 }
 
@@ -73,7 +73,11 @@ func (r *Repository) CreateChat(chat ds.Chat) (int, error) {
 }
 
 func (r *Repository) UpdateChat(chat ds.Chat) error {
-	err := r.db.Save(&chat).Error
+	err := r.db.Model(&ds.Chat{}).Where("id = ?", chat.ID).Updates(map[string]interface{}{
+		"name":     chat.Name,
+		"info":     chat.Info,
+		"nickname": chat.Nickname,
+	}).Error
 	if err != nil {
 		return fmt.Errorf("ошибка при обновлении чата с id %d: %w", chat.ID, err)
 	}

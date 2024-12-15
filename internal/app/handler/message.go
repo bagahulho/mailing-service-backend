@@ -1,23 +1,27 @@
 package handler
 
 import (
-	"RIP/internal/app/ds"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"time"
+
+	"RIP/internal/app/ds"
+	"github.com/gin-gonic/gin"
 )
 
 // GetMessagesFiltered
 // @Summary Получить отфильтрованные сообщения
-// @Description Возвращает список сообщений, отфильтрованных по статусу и диапазону дат
+// @Description Возвращает список сообщений, отфильтрованных по статусу и диапазону дат.
 // @Tags Messages
 // @Accept json
 // @Produce json
 // @Param status query string false "Статус сообщения"
-// @Param start_date query string false "Начальная дата в формате YYYY-MM-DD"
-// @Param end_date query string false "Конечная дата в формате YYYY-MM-DD"
+// @Param start_date query string false "Начальная дата (YYYY-MM-DD)"
+// @Param end_date query string false "Конечная дата (YYYY-MM-DD)"
 // @Security BearerAuth
+// @Success 200 {array} ds.MessageWithUsers "Список сообщений"
+// @Failure 400 {object} ds.ErrorResp "Некорректный формат дат"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /messages [get]
 func (h *Handler) GetMessagesFiltered(ctx *gin.Context) {
 	// Получаем параметры фильтрации из запроса
@@ -27,7 +31,6 @@ func (h *Handler) GetMessagesFiltered(ctx *gin.Context) {
 	userID := ctx.MustGet("userID").(uint)
 	isModerator := ctx.MustGet("isModerator").(bool)
 
-	// Парсим даты
 	startDate, err := time.Parse("2006-01-02", startDateStr)
 	if err != nil && startDateStr != "" {
 		h.errorHandler(ctx, http.StatusBadRequest, "Invalid start date format")
@@ -53,18 +56,21 @@ func (h *Handler) GetMessagesFiltered(ctx *gin.Context) {
 
 // GetMessage
 // @Summary Получить сообщение по ID
-// @Description Возвращает полные данные о сообщении, включая чаты
+// @Description Возвращает полные данные о сообщении, включая чаты.
 // @Tags Messages
 // @Accept json
 // @Produce json
 // @Param id path int true "ID сообщения"
 // @Security BearerAuth
+// @Success 200 {object} ds.MessageDetail "Детальная информация о сообщении"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /messages/{id} [get]
 func (h *Handler) GetMessage(ctx *gin.Context) {
 	messageID := ctx.Param("id") // Получаем ID сообщения из URL
 	userID := ctx.MustGet("userID").(uint)
+	isModerator := ctx.MustGet("isModerator").(bool)
 	// Получаем сообщение из репозитория
-	message, chats, err := h.repository.GetMessage(messageID, userID)
+	message, chats, err := h.repository.GetMessage(messageID, userID, isModerator)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err.Error())
 		return
@@ -76,8 +82,6 @@ func (h *Handler) GetMessage(ctx *gin.Context) {
 		Status:     message.Status,
 		Text:       message.Text,
 		DateCreate: message.DateCreate,
-		DateUpdate: message.DateUpdate.Time,
-		DateFinish: message.DateFinish.Time,
 		Creator:    message.Creator.Login,
 		Moderator:  message.Moderator.Login,
 		Chats:      chats,
@@ -89,13 +93,16 @@ func (h *Handler) GetMessage(ctx *gin.Context) {
 
 // UpdateMessageText
 // @Summary Обновить текст сообщения
-// @Description Обновляет текст сообщения по ID
+// @Description Обновляет текст сообщения по ID.
 // @Tags Messages
 // @Accept json
 // @Produce json
 // @Param id path int true "ID сообщения"
 // @Param message body ds.UpdateMessageTextInput true "Новый текст сообщения"
 // @Security BearerAuth
+// @Success 200 {object} ds.UpdateMessageTextResp "Обновлённый текст"
+// @Failure 400 {object} ds.ErrorResp "Некорректный ID или неверный формат данных"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /messages/{id}/text [put]
 func (h *Handler) UpdateMessageText(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
@@ -122,17 +129,22 @@ func (h *Handler) UpdateMessageText(ctx *gin.Context) {
 	}
 
 	// Возвращаем успешный ответ
-	ctx.JSON(http.StatusOK, gin.H{"message": "Text updated successfully"})
+	ctx.JSON(http.StatusOK, gin.H{"text": input.Text})
 }
 
 // MessageForm
 // @Summary Сформировать сообщение
-// @Description Устанавливает статус сообщения на "сформирован"
+// @Description Устанавливает статус сообщения на "сформирован".
 // @Tags Messages
 // @Accept json
 // @Produce json
 // @Param id path int true "ID сообщения"
 // @Security BearerAuth
+// @Success 200 {object} ds.OkResp "Сообщение об успешном обновлении статуса"
+// @Failure 400 {object} ds.ErrorResp "Неверный ID сообщения или пустой текст"
+// @Failure 403 {object} ds.ErrorResp "Действие запрещено"
+// @Failure 409 {object} ds.ErrorResp "Конфликт статусов"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /messages/{id}/form [put]
 func (h *Handler) MessageForm(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
@@ -167,12 +179,15 @@ func (h *Handler) MessageForm(ctx *gin.Context) {
 
 // MessageFinish
 // @Summary Завершить сообщение
-// @Description Устанавливает статус сообщения на "завершён"
+// @Description Устанавливает статус сообщения на "завершён".
 // @Tags Messages
 // @Accept json
 // @Produce json
 // @Param id path int true "ID сообщения"
 // @Security BearerAuth
+// @Success 200 {object} ds.OkResp "Сообщение об успешном обновлении статуса"
+// @Failure 409 {object} ds.ErrorResp "Конфликт статусов"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /messages/{id}/finish [put]
 func (h *Handler) MessageFinish(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
@@ -203,12 +218,15 @@ func (h *Handler) MessageFinish(ctx *gin.Context) {
 
 // MessageReject
 // @Summary Отклонить сообщение
-// @Description Устанавливает статус сообщения на "отклонён"
+// @Description Устанавливает статус сообщения на "отклонён".
 // @Tags Messages
 // @Accept json
 // @Produce json
 // @Param id path int true "ID сообщения"
 // @Security BearerAuth
+// @Success 200 {object} ds.OkResp "Сообщение об успешном обновлении статуса"
+// @Failure 409 {object} ds.ErrorResp "Конфликт статусов"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /messages/{id}/reject [put]
 func (h *Handler) MessageReject(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))
@@ -239,12 +257,16 @@ func (h *Handler) MessageReject(ctx *gin.Context) {
 
 // MessageDelete
 // @Summary Удалить сообщение
-// @Description Устанавливает статус сообщения на "удалён"
+// @Description Устанавливает статус сообщения на "удалён".
 // @Tags Messages
 // @Accept json
 // @Produce json
 // @Param id path int true "ID сообщения"
 // @Security BearerAuth
+// @Success 200 {object} ds.OkResp "Сообщение об успешном обновлении статуса"
+// @Failure 403 {object} ds.ErrorResp "Действие запрещено"
+// @Failure 409 {object} ds.ErrorResp "Конфликт статусов"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /messages/{id}/delete [delete]
 func (h *Handler) MessageDelete(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("id"))

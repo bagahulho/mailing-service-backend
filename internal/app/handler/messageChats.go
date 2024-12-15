@@ -2,19 +2,23 @@ package handler
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
-// DeleteChatFromMessage Удаление чата из сообщения
+// DeleteChatFromMessage
 // @Summary Удаление чата из сообщения
-// @Description Удаляет чат с указанным ID из сообщения с указанным ID
+// @Description Удаляет чат с указанным ID из сообщения с указанным ID.
 // @Tags Message-Chats
+// @Produce json
 // @Param message_id path int true "ID сообщения"
 // @Param chat_id path int true "ID чата"
-// @Produce json
 // @Security BearerAuth
+// @Success 200 {object} ds.OkResp "Сообщение об успешном удалении чата"
+// @Failure 400 {object} ds.ErrorResp "Некорректный ID"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /message-chats/delete/{message_id}/{chat_id} [delete]
 func (h *Handler) DeleteChatFromMessage(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("message_id"))
@@ -37,14 +41,17 @@ func (h *Handler) DeleteChatFromMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Чат успешно удален из сообщения"})
 }
 
-// ToggleSoundField Переключение поля "со звуком"
-// @Summary Переключение поля "со звуком" у чата в сообщении
-// @Description Переключает значение поля "со звуком" у чата с указанным ID в сообщении с указанным ID
+// ToggleSoundField
+// @Summary Переключение поля "со звуком"
+// @Description Переключает значение поля "со звуком" у чата в сообщении.
 // @Tags Message-Chats
+// @Produce json
 // @Param message_id path int true "ID сообщения"
 // @Param chat_id path int true "ID чата"
-// @Produce json
 // @Security BearerAuth
+// @Success 200 {object} ds.OkResp "Сообщение об успешном изменении значения"
+// @Failure 400 {object} ds.ErrorResp "Некорректный ID"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /message-chats/switch/{message_id}/{chat_id} [put]
 func (h *Handler) ToggleSoundField(ctx *gin.Context) {
 	messageID, err := strconv.Atoi(ctx.Param("message_id"))

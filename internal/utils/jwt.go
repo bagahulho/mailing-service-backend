@@ -1,8 +1,8 @@
 package utils
 
 import (
+	"errors"
 	"os"
-	"time"
 
 	"github.com/golang-jwt/jwt"
 )
@@ -12,7 +12,6 @@ func GenerateJWT(userID uint, username string, isModerator bool) (string, error)
 		"userID":      userID,
 		"username":    username,
 		"isModerator": isModerator,
-		"exp":         time.Now().Add(1 * time.Hour).Unix(), // Токен действует 1 час
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_KEY")))
@@ -21,4 +20,17 @@ func GenerateJWT(userID uint, username string, isModerator bool) (string, error)
 	}
 
 	return tokenString, nil
+}
+
+func ParseJWT(tokenString string) (*jwt.Token, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("неверный метод подписи")
+		}
+		return []byte(os.Getenv("JWT_KEY")), nil // Используем тот же секретный ключ
+	})
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
 }

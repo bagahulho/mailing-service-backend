@@ -18,13 +18,12 @@ func (r *Repository) GetMessagesFiltered(status string, hasStartDate, hasEndDate
 		query = r.db.Table("messages").
 			Select("messages.id, messages.status, messages.text, messages.date_create, messages.date_update, messages.date_finish, u1.login as creator").
 			Joins("JOIN users u1 ON messages.creator_id = u1.id").
-			Where("messages.status != ? AND messages.status != ?", "удалён", "черновик").
-			Where("messages.creator_id = ?", userID)
+			Where("messages.status != ?", "удалён").
+			Where("messages.creator_id = ?", userID).Order("messages.id asc")
 	} else {
 		query = r.db.Table("messages").
 			Select("messages.id, messages.status, messages.text, messages.date_create, messages.date_update, messages.date_finish, u1.login as creator").
-			Joins("JOIN users u1 ON messages.creator_id = u1.id").
-			Where("messages.status != ? AND messages.status != ?", "удалён", "черновик")
+			Joins("JOIN users u1 ON messages.creator_id = u1.id").Order("messages.id asc")
 	}
 
 	// Добавляем фильтрацию по статусу, если он указан
@@ -71,7 +70,7 @@ func (r *Repository) GetMessagesFiltered(status string, hasStartDate, hasEndDate
 //	return message, chats, nil
 //}
 
-func (r *Repository) GetMessage(messageID string, userID uint) (ds.Message, []ds.ChatResponseWithFlags, error) {
+func (r *Repository) GetMessage(messageID string, userID uint, isModerator bool) (ds.Message, []ds.ChatResponseWithFlags, error) {
 	var message ds.Message
 	var chats []ds.ChatResponseWithFlags
 
@@ -79,7 +78,7 @@ func (r *Repository) GetMessage(messageID string, userID uint) (ds.Message, []ds
 	if err := r.db.Preload("Creator").Preload("Moderator").First(&message, messageID).Error; err != nil {
 		return ds.Message{}, nil, err
 	}
-	if message.CreatorID != userID || message.Status == "удалён" {
+	if (message.CreatorID != userID || message.Status == "удалён") && !isModerator {
 		return ds.Message{}, nil, fmt.Errorf("данная заявка вам не доступна")
 	}
 

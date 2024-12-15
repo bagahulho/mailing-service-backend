@@ -11,12 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterUser Регистрация нового пользователя
+// RegisterUser
 // @Summary Регистрация пользователя
-// @Description Создает нового пользователя с указанными логином и паролем
+// @Description Создает нового пользователя с указанными логином и паролем.
 // @Tags Auth
-// @Param input body ds.UserRespReq true "Данные для регистрации пользователя"
+// @Accept json
 // @Produce json
+// @Param input body ds.UserRegisterReq true "Данные для регистрации пользователя"
+// @Success 201 {object} ds.OkResp "Сообщение об успешной регистрации"
+// @Failure 400 {object} ds.ErrorResp "Неверные данные или пароли не совпадают"
+// @Failure 409 {object} ds.ErrorResp "Пользователь уже существует"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /user/reg [post]
 func (h *Handler) RegisterUser(ctx *gin.Context) {
 	//var input ds.User
@@ -53,12 +58,17 @@ func (h *Handler) RegisterUser(ctx *gin.Context) {
 	})
 }
 
-// Authenticate Аутентификация пользователя
+// Authenticate
 // @Summary Вход пользователя
-// @Description Аутентификация пользователя и создание JWT токена
+// @Description Аутентификация пользователя и получение JWT-токена.
 // @Tags Auth
-// @Param input body ds.UserRespReq true "Данные для входа"
+// @Accept json
 // @Produce json
+// @Param input body ds.UserRespReq true "Данные для входа"
+// @Success 200 {object} ds.AuthResp "Токен JWT"
+// @Failure 400 {object} ds.ErrorResp "Неверный формат данных"
+// @Failure 401 {object} ds.ErrorResp "Неверные учетные данные"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /user/login [post]
 func (h *Handler) Authenticate(ctx *gin.Context) {
 	var req ds.UserRespReq
@@ -89,12 +99,15 @@ func (h *Handler) Authenticate(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"token": token})
 }
 
-// Logout Выход пользователя
+// Logout
 // @Summary Выход из системы
-// @Description Удаляет текущую сессию пользователя и завершает сеанс
+// @Description Завершение текущей сессии пользователя.
 // @Tags Auth
-// @Security ApiKeyAuth
 // @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} ds.OkResp "Сообщение о выходе"
+// @Failure 401 {object} ds.ErrorResp "Пользователь не авторизован"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
 // @Router /user/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
 	userID, exists := c.Get("userID")
@@ -114,6 +127,19 @@ func (h *Handler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Вы успешно вышли из системы"})
 }
 
+// UpdateUser
+// @Summary Обновить данные пользователя
+// @Description Обновляет данные текущего пользователя.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param input body ds.UserUpdateReq true "Новые данные пользователя"
+// @Security BearerAuth
+// @Success 200 {object} ds.UserRegisterResp "Обновлённый пользователь"
+// @Failure 400 {object} ds.ErrorResp "Некорректный формат данных"
+// @Failure 401 {object} ds.ErrorResp "Пользователь не авторизован"
+// @Failure 500 {object} ds.ErrorResp "Внутренняя ошибка сервера"
+// @Router /user/update [put]
 func (h *Handler) UpdateUser(ctx *gin.Context) {
 	userID, exists := ctx.Get("userID")
 	if !exists {

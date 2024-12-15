@@ -20,11 +20,6 @@ func NewHandler(r *repository.Repository) *Handler {
 
 func (h *Handler) RegisterHandler(router *gin.Engine) {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	//router.GET("/chats", h.GetAllChats)
-	//router.GET("/chats/:id", h.GetChatById)
-	//router.GET("/message/:id", h.GetMessage)
-	//router.POST("/add-chat", h.AddChatToList)
-	//router.POST("/list/delete", h.DeleteList)
 	protected := router.Group("/")
 	protected.Use(h.AuthMiddleware)
 	{

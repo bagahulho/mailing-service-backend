@@ -26,13 +26,13 @@ type GetChatsResponse struct {
 }
 
 type ChatResponse struct {
-	ID          int
-	Img         string
-	Name        string
-	Info        string
-	Nickname    string
-	Friends     int
-	Subscribers int
+	ID          int    `json:"id"`
+	Img         string `json:"img"`
+	Name        string `json:"name"`
+	Info        string `json:"info"`
+	Nickname    string `json:"nickname"`
+	Friends     int    `json:"friends"`
+	Subscribers int    `json:"subscribers"`
 }
 
 type ChatResponseWithFlags struct {

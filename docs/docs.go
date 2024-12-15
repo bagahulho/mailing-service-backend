@@ -22,10 +22,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Добавляет чат к конкретному сообщению",
+                "description": "Добавляет чат к конкретному сообщению.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Chats"
                 ],
+                "summary": "Добавить чат в сообщение",
                 "parameters": [
                     {
                         "type": "integer",
@@ -35,12 +39,34 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "201": {
+                        "description": "Сообщение о добавлении чата",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID чата",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/chats": {
             "get": {
-                "description": "Возвращает список чатов для конкретного пользователя с указанием черновиков",
+                "description": "Возвращает список чатов для конкретного пользователя с указанием черновиков.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Chats"
                 ],
@@ -54,13 +80,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Список чатов с черновиками",
                         "schema": {
                             "$ref": "#/definitions/ds.GetChatsResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "$ref": "#/definitions/ds.ErrorResp"
                         }
@@ -75,7 +101,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Создает новый чат с указанными данными",
+                "description": "Создает новый чат с указанными данными.",
                 "consumes": [
                     "application/json"
                 ],
@@ -85,6 +111,7 @@ const docTemplate = `{
                 "tags": [
                     "Chats"
                 ],
+                "summary": "Создать новый чат",
                 "parameters": [
                     {
                         "description": "Информация о чате",
@@ -96,15 +123,38 @@ const docTemplate = `{
                         }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "201": {
+                        "description": "Созданный чат",
+                        "schema": {
+                            "$ref": "#/definitions/ds.Chat"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные или отсутствует имя/никнейм",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/chats/{id}": {
             "get": {
-                "description": "Возвращает информацию о чате по его ID",
+                "description": "Возвращает информацию о чате по его ID.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Chats"
                 ],
+                "summary": "Получить чат по ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -114,7 +164,26 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Информация о чате",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ChatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID чата",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "404": {
+                        "description": "Чат не найден",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             },
             "put": {
                 "security": [
@@ -122,7 +191,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Обновляет данные существующего чата",
+                "description": "Обновляет данные существующего чата.",
                 "consumes": [
                     "application/json"
                 ],
@@ -132,6 +201,7 @@ const docTemplate = `{
                 "tags": [
                     "Chats"
                 ],
+                "summary": "Обновить чат",
                 "parameters": [
                     {
                         "type": "integer",
@@ -150,7 +220,26 @@ const docTemplate = `{
                         }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Обновлённый чат",
+                        "schema": {
+                            "$ref": "#/definitions/ds.Chat"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID чата или неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             },
             "delete": {
                 "security": [
@@ -158,10 +247,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Удаляет чат по его ID и удаляет изображение из Minio",
+                "description": "Удаляет чат по его ID и удаляет изображение из Minio.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Chats"
                 ],
+                "summary": "Удалить чат",
                 "parameters": [
                     {
                         "type": "integer",
@@ -171,7 +264,26 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "201": {
+                        "description": "Сообщение об успешном удалении",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID чата",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/chats/{id}/new-image": {
@@ -181,13 +293,17 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Загружает и заменяет изображение чата",
+                "description": "Загружает и заменяет изображение чата.",
                 "consumes": [
                     "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
                 ],
                 "tags": [
                     "Chats"
                 ],
+                "summary": "Заменить изображение чата",
                 "parameters": [
                     {
                         "type": "integer",
@@ -204,7 +320,26 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Сообщение об успешной загрузке",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Невалидные данные или неправильный формат файла",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/message-chats/delete/{message_id}/{chat_id}": {
@@ -214,7 +349,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Удаляет чат с указанным ID из сообщения с указанным ID",
+                "description": "Удаляет чат с указанным ID из сообщения с указанным ID.",
                 "produces": [
                     "application/json"
                 ],
@@ -238,7 +373,26 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Сообщение об успешном удалении чата",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/message-chats/switch/{message_id}/{chat_id}": {
@@ -248,14 +402,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Переключает значение поля \"со звуком\" у чата с указанным ID в сообщении с указанным ID",
+                "description": "Переключает значение поля \"со звуком\" у чата в сообщении.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Message-Chats"
                 ],
-                "summary": "Переключение поля \"со звуком\" у чата в сообщении",
+                "summary": "Переключение поля \"со звуком\"",
                 "parameters": [
                     {
                         "type": "integer",
@@ -272,7 +426,26 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Сообщение об успешном изменении значения",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/messages": {
@@ -282,7 +455,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает список сообщений, отфильтрованных по статусу и диапазону дат",
+                "description": "Возвращает список сообщений, отфильтрованных по статусу и диапазону дат.",
                 "consumes": [
                     "application/json"
                 ],
@@ -302,18 +475,40 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Начальная дата в формате YYYY-MM-DD",
+                        "description": "Начальная дата (YYYY-MM-DD)",
                         "name": "start_date",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Конечная дата в формате YYYY-MM-DD",
+                        "description": "Конечная дата (YYYY-MM-DD)",
                         "name": "end_date",
                         "in": "query"
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Список сообщений",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ds.MessageWithUsers"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный формат дат",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/messages/{id}": {
@@ -323,7 +518,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает полные данные о сообщении, включая чаты",
+                "description": "Возвращает полные данные о сообщении, включая чаты.",
                 "consumes": [
                     "application/json"
                 ],
@@ -343,7 +538,20 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Детальная информация о сообщении",
+                        "schema": {
+                            "$ref": "#/definitions/ds.MessageDetail"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/messages/{id}/delete": {
@@ -353,7 +561,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Устанавливает статус сообщения на \"удалён\"",
+                "description": "Устанавливает статус сообщения на \"удалён\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -373,7 +581,32 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Сообщение об успешном обновлении статуса",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "403": {
+                        "description": "Действие запрещено",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Конфликт статусов",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/messages/{id}/finish": {
@@ -383,7 +616,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Устанавливает статус сообщения на \"завершён\"",
+                "description": "Устанавливает статус сообщения на \"завершён\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -403,7 +636,26 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Сообщение об успешном обновлении статуса",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Конфликт статусов",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/messages/{id}/form": {
@@ -413,7 +665,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Устанавливает статус сообщения на \"сформирован\"",
+                "description": "Устанавливает статус сообщения на \"сформирован\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -433,7 +685,38 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Сообщение об успешном обновлении статуса",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный ID сообщения или пустой текст",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "403": {
+                        "description": "Действие запрещено",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Конфликт статусов",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/messages/{id}/reject": {
@@ -443,7 +726,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Устанавливает статус сообщения на \"отклонён\"",
+                "description": "Устанавливает статус сообщения на \"отклонён\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -463,7 +746,26 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Сообщение об успешном обновлении статуса",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Конфликт статусов",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/messages/{id}/text": {
@@ -473,7 +775,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Обновляет текст сообщения по ID",
+                "description": "Обновляет текст сообщения по ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -502,12 +804,34 @@ const docTemplate = `{
                         }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Обновлённый текст",
+                        "schema": {
+                            "$ref": "#/definitions/ds.UpdateMessageTextResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID или неверный формат данных",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/user/login": {
             "post": {
-                "description": "Аутентификация пользователя и создание JWT токена",
+                "description": "Аутентификация пользователя и получение JWT-токена.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -526,7 +850,32 @@ const docTemplate = `{
                         }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Токен JWT",
+                        "schema": {
+                            "$ref": "#/definitions/ds.AuthResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный формат данных",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Неверные учетные данные",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/user/logout": {
@@ -536,7 +885,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Удаляет текущую сессию пользователя и завершает сеанс",
+                "description": "Завершение текущей сессии пользователя.",
                 "produces": [
                     "application/json"
                 ],
@@ -544,12 +893,34 @@ const docTemplate = `{
                     "Auth"
                 ],
                 "summary": "Выход из системы",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Сообщение о выходе",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         },
         "/user/reg": {
             "post": {
-                "description": "Создает нового пользователя с указанными логином и паролем",
+                "description": "Создает нового пользователя с указанными логином и паролем.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -564,15 +935,134 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/ds.UserRespReq"
+                            "$ref": "#/definitions/ds.UserRegisterReq"
                         }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "201": {
+                        "description": "Сообщение об успешной регистрации",
+                        "schema": {
+                            "$ref": "#/definitions/ds.OkResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные или пароли не совпадают",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Пользователь уже существует",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/update": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет данные текущего пользователя.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Обновить данные пользователя",
+                "parameters": [
+                    {
+                        "description": "Новые данные пользователя",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.UserUpdateReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Обновлённый пользователь",
+                        "schema": {
+                            "$ref": "#/definitions/ds.UserRegisterResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный формат данных",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/ds.ErrorResp"
+                        }
+                    }
+                }
             }
         }
     },
     "definitions": {
+        "ds.AuthResp": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.Chat": {
+            "type": "object",
+            "properties": {
+                "friends": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "img": {
+                    "type": "string"
+                },
+                "info": {
+                    "type": "string"
+                },
+                "isDelete": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "subscribers": {
+                    "type": "integer"
+                }
+            }
+        },
         "ds.ChatRequest": {
             "type": "object",
             "properties": {
@@ -619,6 +1109,38 @@ const docTemplate = `{
                 }
             }
         },
+        "ds.ChatResponseWithFlags": {
+            "type": "object",
+            "properties": {
+                "friends": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "img": {
+                    "type": "string"
+                },
+                "info": {
+                    "type": "string"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "sound": {
+                    "type": "boolean"
+                },
+                "subscribers": {
+                    "type": "integer"
+                }
+            }
+        },
         "ds.ErrorResp": {
             "type": "object",
             "properties": {
@@ -626,7 +1148,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -647,6 +1169,78 @@ const docTemplate = `{
                 }
             }
         },
+        "ds.MessageDetail": {
+            "type": "object",
+            "properties": {
+                "chats": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ds.ChatResponseWithFlags"
+                    }
+                },
+                "creator": {
+                    "type": "string"
+                },
+                "date_create": {
+                    "type": "string"
+                },
+                "date_finish": {
+                    "type": "string"
+                },
+                "date_update": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "moderator": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.MessageWithUsers": {
+            "type": "object",
+            "properties": {
+                "creator": {
+                    "type": "string"
+                },
+                "date_create": {
+                    "type": "string"
+                },
+                "date_finish": {
+                    "type": "string"
+                },
+                "date_update": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "moderator": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.OkResp": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "ds.UpdateMessageTextInput": {
             "type": "object",
             "required": [
@@ -659,6 +1253,42 @@ const docTemplate = `{
                 }
             }
         },
+        "ds.UpdateMessageTextResp": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.UserRegisterReq": {
+            "type": "object",
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "repeat_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.UserRegisterResp": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "is_moderator": {
+                    "type": "boolean"
+                },
+                "login": {
+                    "type": "string"
+                }
+            }
+        },
         "ds.UserRespReq": {
             "type": "object",
             "properties": {
@@ -666,6 +1296,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.UserUpdateReq": {
+            "type": "object",
+            "properties": {
+                "current_password": {
+                    "type": "string"
+                },
+                "new_password": {
                     "type": "string"
                 }
             }
