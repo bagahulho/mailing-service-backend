@@ -2,6 +2,7 @@
 
 1. [Фронтенд](https://github.com/bagahulho/mailing-service-frontend)
 2. [Бэкенд](https://github.com/bagahulho/mailing-service-backend)
+3. [Github Pages](https://bagahulho.github.io/mailing-service-frontend/)
 
 ## Бэкенд
 
